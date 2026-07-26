@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "tmdb-trending",
   "name": "TMDB 热门",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "按国内剧集、国外剧集、国内电影、国外电影和动漫浏览 TMDB 热门内容",
   "action_runtime": {
     "entrypoint": "./plugin"

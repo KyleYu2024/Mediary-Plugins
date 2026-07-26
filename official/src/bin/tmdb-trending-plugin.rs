@@ -72,6 +72,18 @@ struct PluginContext {
 struct DiscoverResponse {
     #[serde(default)]
     categories: HashMap<String, Vec<TmdbMedia>>,
+    #[serde(default)]
+    cache: DiscoverCache,
+}
+
+#[derive(Default, Deserialize)]
+struct DiscoverCache {
+    #[serde(default)]
+    saved_at: u64,
+    #[serde(default)]
+    refreshing: bool,
+    #[serde(default)]
+    refresh_failed: bool,
 }
 
 #[derive(Clone, Default, Deserialize)]
@@ -200,6 +212,10 @@ async fn browse(context: &PluginContext) -> Result<Value, String> {
         .collect::<Vec<_>>();
     Ok(json!({
         "items": items,
+        "refreshing": discover.cache.refreshing,
+        "refresh_failed": discover.cache.refresh_failed,
+        "refresh_after_ms": discover.cache.refreshing.then_some(2000),
+        "cache_saved_at": discover.cache.saved_at,
     }))
 }
 
