@@ -1,0 +1,39 @@
+{
+  "id": "tmdb-trending",
+  "name": "TMDB 热门",
+  "version": "0.1.0",
+  "description": "浏览 TMDB 日榜和周榜，查看入库/订阅状态并一键创建 Mediary 订阅",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official/tmdb-trending",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "0.8.1",
+  "permissions": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "ba9966cc24e586704381926ecef3f55436f6531e798311dc2d9b127a1be89c22",
+      "size": 2242283
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "9e1d10e3eeb9facd2dbd14720176d99c6234146b16d615d0c50fa28762ccf638",
+      "size": 2241478
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "e1dd5a47f3a1f8e30c9772baa55e2de04c657a4ff985275d10b6fd619558164b",
+      "size": 2118056
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "9e5cd363fdb91ee2c7a647c9e52ac436c36eacc6e014b541922353926bf3c941",
+      "size": 2034033
+    }
+  }
+}

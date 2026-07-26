@@ -1,4 +1,118 @@
 {
   "schema_version": 1,
-  "plugins": []
+  "plugins": [
+    {
+      "id": "maoyan-rank",
+      "name": "猫眼榜单订阅",
+      "version": "0.2.0",
+      "description": "定时读取猫眼榜单，解析 TMDB 后自动创建 Mediary 订阅",
+      "author": "Mediary",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official/maoyan-rank",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official",
+      "license": "MIT",
+      "api_version": 1,
+      "min_mediary_version": "0.7.7",
+      "permissions": [
+        "catalog:read",
+        "subscriptions:read",
+        "subscriptions:write"
+      ],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/maoyan-rank-v0.2.0-linux-amd64.tar.gz",
+          "sha256": "09a222e48fb3ea93a195f86aa56932002000e8c34223228fc77b46f8517e1d94",
+          "size": 2326070
+        },
+        "linux-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/maoyan-rank-v0.2.0-linux-arm64.tar.gz",
+          "sha256": "f09f4f68ade07bef6144c9b0e3dd06b68e6c66ad9546368d23d1218a73d269d8",
+          "size": 2342820
+        },
+        "darwin-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/maoyan-rank-v0.2.0-darwin-amd64.tar.gz",
+          "sha256": "2512b2d06d8594466f896d8b94dfd779bee214fdd4ed59ac0b628125c8b28620",
+          "size": 2197150
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/maoyan-rank-v0.2.0-darwin-arm64.tar.gz",
+          "sha256": "5c3899d6274e956b902cd9ef9e4141c03379e3d6e5b20af5b8e692861d986a03",
+          "size": 2127666
+        }
+      }
+    },
+    {
+      "id": "pansou",
+      "name": "盘搜",
+      "version": "0.1.3",
+      "description": "聚合搜索 115 分享、磁力与 ed2k 资源，由 Mediary 分别执行转存整理或 115 离线下载",
+      "author": "Mediary",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official/pansou",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official",
+      "license": "MIT",
+      "api_version": 1,
+      "min_mediary_version": "0.7.7",
+      "permissions": [],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/pansou-v0.1.3-linux-amd64.tar.gz",
+          "sha256": "fb2d767f2ac63543ceb3ef82c3dc0f469d22800640c0415bd4198ba0666cb624",
+          "size": 2177142
+        },
+        "linux-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/pansou-v0.1.3-linux-arm64.tar.gz",
+          "sha256": "097959f65f204f017ecc4644c93028d57e7cc2b4282cc6ed6cc3d2430907cc1e",
+          "size": 2200879
+        },
+        "darwin-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/pansou-v0.1.3-darwin-amd64.tar.gz",
+          "sha256": "d2eaf74708ca64d48a6095038acc55667d92988625a0902303c46534c7c0ec0d",
+          "size": 2054215
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/pansou-v0.1.3-darwin-arm64.tar.gz",
+          "sha256": "cd5a423f467777551d534bfc4e9c3276e757e28858ba7df6b226e6648992a7be",
+          "size": 1997343
+        }
+      }
+    },
+    {
+      "id": "tmdb-trending",
+      "name": "TMDB 热门",
+      "version": "0.1.0",
+      "description": "浏览 TMDB 日榜和周榜，查看入库/订阅状态并一键创建 Mediary 订阅",
+      "author": "Mediary",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official/tmdb-trending",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.0/official",
+      "license": "MIT",
+      "api_version": 1,
+      "min_mediary_version": "0.8.1",
+      "permissions": [
+        "catalog:read",
+        "subscriptions:read",
+        "subscriptions:write"
+      ],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-linux-amd64.tar.gz",
+          "sha256": "ba9966cc24e586704381926ecef3f55436f6531e798311dc2d9b127a1be89c22",
+          "size": 2242283
+        },
+        "linux-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-linux-arm64.tar.gz",
+          "sha256": "9e1d10e3eeb9facd2dbd14720176d99c6234146b16d615d0c50fa28762ccf638",
+          "size": 2241478
+        },
+        "darwin-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-darwin-amd64.tar.gz",
+          "sha256": "e1dd5a47f3a1f8e30c9772baa55e2de04c657a4ff985275d10b6fd619558164b",
+          "size": 2118056
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.0/tmdb-trending-v0.1.0-darwin-arm64.tar.gz",
+          "sha256": "9e5cd363fdb91ee2c7a647c9e52ac436c36eacc6e014b541922353926bf3c941",
+          "size": 2034033
+        }
+      }
+    }
+  ]
 }
