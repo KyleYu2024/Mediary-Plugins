@@ -1,0 +1,365 @@
+{
+  "api_version": 1,
+  "id": "maoyan-rank",
+  "name": "猫眼榜单订阅",
+  "version": "0.2.0",
+  "description": "定时读取猫眼榜单，解析 TMDB 后自动创建 Mediary 订阅",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "refresh",
+      "label": "立即运行",
+      "cron_setting": "cron",
+      "timeout_seconds": 1200
+    }
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "auto_grant_scopes": true,
+  "data_view": {
+    "title": "订阅记录",
+    "file": "data/records.json",
+    "item_label": "已创建订阅",
+    "summary": [
+      {
+        "key": "total",
+        "label": "订阅记录"
+      },
+      {
+        "key": "movies",
+        "label": "电影"
+      },
+      {
+        "key": "series",
+        "label": "剧集/综艺"
+      },
+      {
+        "key": "platforms",
+        "label": "来源平台"
+      }
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "名称",
+        "primary": true
+      },
+      {
+        "key": "media_type",
+        "label": "类型"
+      },
+      {
+        "key": "source",
+        "label": "榜单来源"
+      },
+      {
+        "key": "platform",
+        "label": "平台"
+      },
+      {
+        "key": "subscribed_at",
+        "label": "订阅时间"
+      }
+    ]
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "运行设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "cron",
+            "type": "text",
+            "label": "执行周期",
+            "placeholder": "5 位 cron 表达式，默认 0 9 * * *",
+            "default": "0 9 * * *"
+          },
+          {
+            "key": "clear",
+            "type": "switch",
+            "label": "下次运行前清理历史记录",
+            "default": false
+          }
+        ]
+      },
+      {
+        "title": "榜单范围",
+        "alert": "电视剧、网剧和综艺需要至少开启一个平台；多个平台可并行订阅，重复内容会自动过滤。",
+        "fields": [
+          {
+            "key": "type",
+            "type": "multiselect",
+            "label": "订阅类型",
+            "default": [
+              "movie",
+              "web-heat",
+              "web-tv",
+              "zongyi",
+              "web-movie"
+            ],
+            "options": [
+              {
+                "label": "电影票房榜单",
+                "value": "movie"
+              },
+              {
+                "label": "电视剧热度榜单",
+                "value": "web-heat"
+              },
+              {
+                "label": "网剧热度榜单",
+                "value": "web-tv"
+              },
+              {
+                "label": "综艺榜单",
+                "value": "zongyi"
+              },
+              {
+                "label": "网络电影榜单",
+                "value": "web-movie"
+              }
+            ]
+          },
+          {
+            "key": "num",
+            "type": "select",
+            "label": "电影榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "平台榜单",
+        "fields": [
+          {
+            "key": "all_enabled",
+            "type": "switch",
+            "label": "全网热门订阅",
+            "default": false
+          },
+          {
+            "key": "all_num",
+            "type": "select",
+            "label": "全网榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "key": "tx_enabled",
+            "type": "switch",
+            "label": "腾讯热门订阅",
+            "default": false
+          },
+          {
+            "key": "tx_num",
+            "type": "select",
+            "label": "腾讯榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "key": "iqy_enabled",
+            "type": "switch",
+            "label": "爱奇艺热门订阅",
+            "default": false
+          },
+          {
+            "key": "iqy_num",
+            "type": "select",
+            "label": "爱奇艺榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "key": "mg_enabled",
+            "type": "switch",
+            "label": "芒果热门订阅",
+            "default": false
+          },
+          {
+            "key": "mg_num",
+            "type": "select",
+            "label": "芒果榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "key": "yk_enabled",
+            "type": "switch",
+            "label": "优酷热门订阅",
+            "default": false
+          },
+          {
+            "key": "yk_num",
+            "type": "select",
+            "label": "优酷榜单条数",
+            "default": 10,
+            "options": [
+              {
+                "label": "1",
+                "value": 1
+              },
+              {
+                "label": "2",
+                "value": 2
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "5",
+                "value": 5
+              },
+              {
+                "label": "7",
+                "value": 7
+              },
+              {
+                "label": "10",
+                "value": 10
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

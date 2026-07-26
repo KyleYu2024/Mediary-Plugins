@@ -1,0 +1,75 @@
+{
+  "api_version": 1,
+  "id": "pansou",
+  "name": "盘搜",
+  "version": "0.1.3",
+  "description": "聚合搜索 115 分享、磁力与 ed2k 资源，由 Mediary 分别执行转存整理或 115 离线下载",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "secret_fields": [
+    "password"
+  ],
+  "interactive_view": {
+    "title": "盘搜",
+    "eyebrow": "资源搜索",
+    "action": "search",
+    "trigger": {
+      "label": "搜索",
+      "icon": "search"
+    },
+    "submit": {
+      "label": "搜索",
+      "pending_label": "搜索中",
+      "icon": "search"
+    },
+    "fields": [
+      {
+        "key": "query",
+        "type": "text",
+        "placeholder": "搜索电影、剧集或资源名称",
+        "required": true,
+        "autofocus": true,
+        "icon": "search"
+      }
+    ],
+    "empty": {
+      "text": "输入关键词开始搜索",
+      "icon": "search"
+    },
+    "empty_result_text": "没有找到相关资源。",
+    "error_message": "盘搜请求失败，请检查插件配置和盘搜地址。"
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "base_url",
+            "type": "text",
+            "label": "Pansou 地址",
+            "placeholder": "http://pansou:80"
+          },
+          {
+            "key": "username",
+            "type": "text",
+            "label": "登录账号",
+            "placeholder": "选填"
+          },
+          {
+            "key": "password",
+            "type": "text",
+            "label": "登录密码",
+            "placeholder": "选填"
+          }
+        ]
+      }
+    ]
+  }
+}

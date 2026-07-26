@@ -1,0 +1,23 @@
+[package]
+name = "mediary-plugins"
+version = "0.1.1"
+edition = "2024"
+
+[[bin]]
+name = "maoyan-rank-plugin"
+path = "src/bin/maoyan-rank-plugin.rs"
+
+[[bin]]
+name = "pansou-plugin"
+path = "src/bin/pansou-plugin.rs"
+
+[[bin]]
+name = "tmdb-trending-plugin"
+path = "src/bin/tmdb-trending-plugin.rs"
+
+[dependencies]
+chrono = { version = "0.4", features = ["clock"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread"] }

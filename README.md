@@ -3,6 +3,10 @@
 Mediary 官方插件索引。Mediary 插件中心从本仓库读取经过审核的插件元数据，
 插件包仍由各作者通过自己的 GitHub Releases 或其他 HTTPS 地址发布。
 
+Mediary 官方插件源码镜像位于 `official/`，由 Mediary 私有主仓库的插件 tag 同步。本仓库
+会在公开 GitHub Actions 中构建 Linux/macOS 的 AMD64 与 ARM64 安装包、发布 Release，
+再以实际产物的 SHA-256 自动更新官方条目。
+
 ## 上架插件
 
 1. 在自己的仓库发布插件包。压缩包根目录必须包含 `plugin.json` 和清单中声明的可执行文件。
