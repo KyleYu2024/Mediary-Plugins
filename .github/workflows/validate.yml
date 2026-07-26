@@ -21,3 +21,6 @@ jobs:
 
       - name: Verify generated catalog is committed
         run: git diff --exit-code catalog.json
+
+      - name: Check documentation links
+        run: node scripts/check-doc-links.mjs

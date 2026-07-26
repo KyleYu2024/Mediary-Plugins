@@ -1,0 +1,52 @@
+{
+  "api_version": 1,
+  "id": "author.sample-action",
+  "name": "最小动作示例",
+  "version": "1.0.0",
+  "description": "演示 Mediary 一次性动作协议",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "interactive_view": {
+    "title": "最小动作示例",
+    "action": "hello",
+    "trigger": {
+      "label": "打开",
+      "icon": "play"
+    },
+    "submit": {
+      "label": "执行",
+      "pending_label": "执行中",
+      "icon": "play"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "type": "text",
+        "label": "名称",
+        "placeholder": "Mediary",
+        "required": true
+      }
+    ],
+    "empty": {
+      "text": "输入名称并执行示例动作",
+      "icon": "play"
+    },
+    "empty_result_text": "动作已完成。"
+  },
+  "requested_scopes": [],
+  "settings_schema": {
+    "sections": [
+      {
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          }
+        ]
+      }
+    ]
+  }
+}
