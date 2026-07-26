@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/KyleYu2024/Mediary-Plugins/main/schema/plugin.schema.json",
+  "title": "Mediary plugin catalog entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "api_version",
+    "min_mediary_version",
+    "permissions",
+    "artifacts"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "source": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "license": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "api_version": {
+      "const": 1
+    },
+    "min_mediary_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]+:[a-z]+$"
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "linux-amd64": {
+          "$ref": "#/$defs/artifact"
+        },
+        "linux-arm64": {
+          "$ref": "#/$defs/artifact"
+        },
+        "darwin-amd64": {
+          "$ref": "#/$defs/artifact"
+        },
+        "darwin-arm64": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "sha256"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 104857600
+        }
+      }
+    }
+  }
+}
