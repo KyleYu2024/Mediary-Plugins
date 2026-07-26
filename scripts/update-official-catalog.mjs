@@ -14,6 +14,11 @@ const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
 const pluginIds = ['maoyan-rank', 'pansou', 'tmdb-trending'];
+const minimumMediaryVersions = {
+  'maoyan-rank': '0.7.7',
+  pansou: '0.7.7',
+  'tmdb-trending': '0.8.1',
+};
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
 for (const id of pluginIds) {
@@ -46,7 +51,7 @@ for (const id of pluginIds) {
     source: `https://github.com/KyleYu2024/Mediary-Plugins/tree/${releaseTag}/official`,
     license: 'MIT',
     api_version: manifest.api_version ?? 1,
-    min_mediary_version: '0.8.0',
+    min_mediary_version: minimumMediaryVersions[id],
     permissions: manifest.requested_scopes ?? [],
     artifacts,
   };
