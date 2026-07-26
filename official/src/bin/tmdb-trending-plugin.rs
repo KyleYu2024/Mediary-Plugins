@@ -4,6 +4,63 @@ use serde_json::{Map, Value, json};
 use std::{collections::HashMap, env, time::Duration};
 
 const POSTER_BASE_URL: &str = "https://image.tmdb.org/t/p/w500";
+const CATEGORY_PAGE_SIZE: usize = 18;
+const CATEGORIES: [(&str, &str); 5] = [
+    ("domestic_tv", "国内电视剧"),
+    ("foreign_tv", "国外电视剧"),
+    ("domestic_movie", "国内电影"),
+    ("foreign_movie", "国外电影"),
+    ("anime", "动漫"),
+];
+const ADULT_TEXT_PATTERNS: [&str; 47] = [
+    "成人",
+    "情色",
+    "色情",
+    "伦理片",
+    "伦理",
+    "三级",
+    "限制级",
+    "禁片",
+    "性爱",
+    "性欲",
+    "性奴",
+    "性侵",
+    "强奸",
+    "强暴",
+    "轮奸",
+    "调教",
+    "情欲",
+    "人妻",
+    "偷情",
+    "不伦",
+    "乱伦",
+    "继母",
+    "嫂子",
+    "小姨子",
+    "av女",
+    "av女优",
+    "adult movie",
+    "jav",
+    "hentai",
+    "erotic",
+    "erotica",
+    "porn",
+    "porno",
+    "pornographic",
+    "xxx",
+    "x-rated",
+    "milf",
+    "mommy",
+    "stepmom",
+    "stepmother",
+    "hotwife",
+    "escort",
+    "fetish",
+    "bdsm",
+    "blowjob",
+    "orgy",
+    "incest",
+];
 
 struct PluginContext {
     api_url: String,
@@ -11,48 +68,29 @@ struct PluginContext {
     client: Client,
 }
 
-#[derive(Clone, Deserialize)]
-struct BrowseRequest {
-    #[serde(default = "default_media_type")]
-    media_type: String,
-    #[serde(default = "default_time_window")]
-    time_window: String,
-    #[serde(default = "default_page")]
-    page: i32,
-}
-
 #[derive(Deserialize)]
-struct SubscribeRequest {
-    tmdb_id: i32,
-    media_type: String,
-    #[serde(default = "default_media_type")]
-    browse_media_type: String,
-    #[serde(default = "default_time_window")]
-    time_window: String,
-    #[serde(default = "default_page")]
-    page: i32,
+struct DiscoverResponse {
+    #[serde(default)]
+    categories: HashMap<String, Vec<TmdbMedia>>,
 }
 
-#[derive(Deserialize)]
-struct TrendingPage {
-    #[serde(default)]
-    page: i32,
-    #[serde(default)]
-    total_pages: i32,
-    #[serde(default)]
-    items: Vec<TmdbMedia>,
-}
-
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 struct TmdbMedia {
     id: i32,
+    #[serde(default)]
+    adult: bool,
     name: Option<String>,
     title: Option<String>,
+    original_name: Option<String>,
+    original_title: Option<String>,
     first_air_date: Option<String>,
     release_date: Option<String>,
     poster_path: Option<String>,
     vote_average: Option<f64>,
     media_type: Option<String>,
+    overview: Option<String>,
+    #[serde(default)]
+    genre_ids: Vec<i32>,
 }
 
 #[derive(Default, Deserialize)]
@@ -71,31 +109,6 @@ struct MediaStatus {
     is_partially_collected: bool,
 }
 
-#[derive(Deserialize)]
-struct TmdbDetailsResponse {
-    details: TmdbDetails,
-    title: Option<String>,
-    year: Option<i32>,
-}
-
-#[derive(Deserialize)]
-struct TmdbDetails {
-    name: Option<String>,
-    title: Option<String>,
-    poster_path: Option<String>,
-    backdrop_path: Option<String>,
-    vote_average: Option<f64>,
-    overview: Option<String>,
-    #[serde(default)]
-    seasons: Vec<TmdbSeason>,
-}
-
-#[derive(Deserialize)]
-struct TmdbSeason {
-    season_number: i32,
-    episode_count: i32,
-}
-
 #[tokio::main]
 async fn main() {
     if let Err(error) = run().await {
@@ -107,18 +120,9 @@ async fn main() {
 async fn run() -> Result<(), String> {
     let context = PluginContext::from_env()?;
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
-    let payload = read_payload()?;
+    let _payload = read_payload()?;
     let output = match action.as_str() {
-        "browse" => {
-            let request = serde_json::from_value::<BrowseRequest>(payload)
-                .map_err(|error| format!("热门浏览参数无效: {error}"))?;
-            browse(&context, request, None).await?
-        }
-        "subscribe" => {
-            let request = serde_json::from_value::<SubscribeRequest>(payload)
-                .map_err(|error| format!("订阅参数无效: {error}"))?;
-            subscribe(&context, request).await?
-        }
+        "browse" => browse(&context).await?,
         _ => return Err(format!("不支持的 TMDB 热门动作: {action}")),
     };
     println!("{output}");
@@ -130,7 +134,7 @@ impl PluginContext {
         let api_url = required_env("MEDIARY_PLUGIN_API_URL")?;
         let token = required_env("MEDIARY_PLUGIN_TOKEN")?;
         let client = Client::builder()
-            .timeout(Duration::from_secs(35))
+            .timeout(Duration::from_secs(43))
             .build()
             .map_err(|error| error.to_string())?;
         Ok(Self {
@@ -141,30 +145,29 @@ impl PluginContext {
     }
 }
 
-async fn browse(
-    context: &PluginContext,
-    request: BrowseRequest,
-    notice: Option<String>,
-) -> Result<Value, String> {
-    let media_type = normalize_media_type(&request.media_type);
-    let time_window = normalize_time_window(&request.time_window);
-    let page = request.page.clamp(1, 500);
-    let trending = get_json(
-        context,
-        "/plugin/tmdb/trending",
-        &[
-            ("media_type", media_type.to_string()),
-            ("time_window", time_window.to_string()),
-            ("page", page.to_string()),
-        ],
-    )
-    .await?;
-    let trending = serde_json::from_value::<TrendingPage>(trending)
+async fn browse(context: &PluginContext) -> Result<Value, String> {
+    let response = get_json(context, "/plugin/tmdb/discover", &[]).await?;
+    let discover = serde_json::from_value::<DiscoverResponse>(response)
         .map_err(|error| format!("TMDB 热门响应格式无效: {error}"))?;
-    let status_keys = trending
-        .items
+    let category_items = CATEGORIES
         .iter()
-        .filter_map(media_identity)
+        .map(|(category, title)| {
+            let mut items = discover
+                .categories
+                .get(*category)
+                .into_iter()
+                .flatten()
+                .filter(|media| is_safe_category_card(media, category))
+                .take(CATEGORY_PAGE_SIZE)
+                .collect::<Vec<_>>();
+            items.truncate((items.len() / 6) * 6);
+            (*category, *title, items)
+        })
+        .collect::<Vec<_>>();
+    let status_keys = category_items
+        .iter()
+        .flat_map(|(_, _, items)| items.iter())
+        .filter_map(|media| media_identity(media))
         .collect::<Vec<_>>();
     let statuses = if status_keys.is_empty() {
         MediaStatuses::default()
@@ -178,117 +181,29 @@ async fn browse(
         serde_json::from_value::<MediaStatuses>(payload)
             .map_err(|error| format!("媒体状态响应格式无效: {error}"))?
     };
-    let current_page = trending.page.max(page);
-    let total_pages = trending.total_pages.max(current_page);
-    let items = trending
-        .items
-        .iter()
-        .filter_map(|media| {
-            let identity = media_identity(media)?;
-            Some(media_item(
-                media,
-                statuses
-                    .statuses
-                    .get(&identity)
-                    .cloned()
-                    .unwrap_or_default(),
-                media_type,
-                time_window,
-                current_page,
-            ))
+    let items = category_items
+        .into_iter()
+        .flat_map(|(_, section, items)| {
+            items.into_iter().filter_map(|media| {
+                let identity = media_identity(media)?;
+                Some(media_item(
+                    media,
+                    section,
+                    statuses
+                        .statuses
+                        .get(&identity)
+                        .cloned()
+                        .unwrap_or_default(),
+                ))
+            })
         })
         .collect::<Vec<_>>();
-    let actions = pagination_actions(media_type, time_window, current_page, total_pages);
     Ok(json!({
-        "notice": notice.unwrap_or_else(|| format!("第 {current_page} / {total_pages} 页")),
         "items": items,
-        "actions": actions,
     }))
 }
 
-async fn subscribe(context: &PluginContext, request: SubscribeRequest) -> Result<Value, String> {
-    let media_type = normalize_item_media_type(&request.media_type)
-        .ok_or_else(|| "media_type 仅支持 movie 或 tv".to_string())?;
-    let status_key = format!("{media_type}:{}", request.tmdb_id);
-    let current_status = get_json(
-        context,
-        "/plugin/media-status",
-        &[("items", status_key.clone())],
-    )
-    .await?;
-    let statuses = serde_json::from_value::<MediaStatuses>(current_status)
-        .map_err(|error| format!("媒体状态响应格式无效: {error}"))?;
-    if statuses
-        .statuses
-        .get(&status_key)
-        .is_some_and(|status| status.is_subscribed || status.is_fully_collected)
-    {
-        return browse(
-            context,
-            browse_request(&request),
-            Some("该条目已订阅或已入库。".to_string()),
-        )
-        .await;
-    }
-
-    let details = get_json(
-        context,
-        "/search/tmdb/details",
-        &[
-            ("id", request.tmdb_id.to_string()),
-            ("media_type", media_type.to_string()),
-        ],
-    )
-    .await?;
-    let details = serde_json::from_value::<TmdbDetailsResponse>(details)
-        .map_err(|error| format!("TMDB 详情响应格式无效: {error}"))?;
-    let title = details
-        .title
-        .clone()
-        .or_else(|| details.details.title.clone())
-        .or_else(|| details.details.name.clone())
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| format!("TMDB {}", request.tmdb_id));
-    let expected_episodes = if media_type == "tv" {
-        details
-            .details
-            .seasons
-            .iter()
-            .find(|season| season.season_number == 1)
-            .map(|season| season.episode_count)
-            .filter(|value| *value > 0)
-    } else {
-        Some(1)
-    };
-    let body = json!({
-        "tmdb_id": request.tmdb_id,
-        "name": title,
-        "year": details.year,
-        "media_type": media_type,
-        "season": (media_type == "tv").then_some(1),
-        "season_start_episode": (media_type == "tv").then_some(1),
-        "expected_episodes": expected_episodes,
-        "poster_path": details.details.poster_path,
-        "backdrop_path": details.details.backdrop_path,
-        "vote_average": details.details.vote_average,
-        "description": details.details.overview,
-    });
-    post_json(context, "/subscriptions", body).await?;
-    browse(
-        context,
-        browse_request(&request),
-        Some(format!("《{title}》已加入订阅。")),
-    )
-    .await
-}
-
-fn media_item(
-    media: &TmdbMedia,
-    status: MediaStatus,
-    browse_media_type: &str,
-    time_window: &str,
-    page: i32,
-) -> Value {
+fn media_item(media: &TmdbMedia, section: &str, status: MediaStatus) -> Value {
     let media_type = media
         .media_type
         .as_deref()
@@ -325,24 +240,25 @@ fn media_item(
         Vec::new()
     } else {
         vec![json!({
-            "type": "plugin_action",
+            "type": "subscription_create",
             "label": "订阅",
-            "pending_label": "订阅中",
             "icon": "plus",
             "tone": "success",
-            "action": "subscribe",
             "payload": {
                 "tmdb_id": media.id,
                 "media_type": media_type,
-                "browse_media_type": browse_media_type,
-                "time_window": time_window,
-                "page": page,
+                "title": title,
+                "poster_path": media.poster_path,
+                "release_date": media.release_date,
+                "first_air_date": media.first_air_date,
+                "vote_average": media.vote_average,
             },
-            "error_message": "创建订阅失败。",
+            "error_message": "无法打开订阅设置。",
         })]
     };
     json!({
         "key": format!("{media_type}:{}", media.id),
+        "section": section,
         "title": title,
         "image_url": media.poster_path.as_deref().map(|path| format!("{POSTER_BASE_URL}{}", normalized_path(path))),
         "image_alt": format!("{title}海报"),
@@ -350,57 +266,6 @@ fn media_item(
         "metadata": if year.is_empty() { Vec::<Value>::new() } else { vec![json!(year)] },
         "actions": actions,
     })
-}
-
-fn pagination_actions(
-    media_type: &str,
-    time_window: &str,
-    page: i32,
-    total_pages: i32,
-) -> Vec<Value> {
-    let mut actions = Vec::new();
-    if page > 1 {
-        actions.push(page_action(
-            "上一页",
-            "arrow-left",
-            media_type,
-            time_window,
-            page - 1,
-        ));
-    }
-    if page < total_pages {
-        actions.push(page_action(
-            "下一页",
-            "arrow-right",
-            media_type,
-            time_window,
-            page + 1,
-        ));
-    }
-    actions
-}
-
-fn page_action(label: &str, icon: &str, media_type: &str, time_window: &str, page: i32) -> Value {
-    json!({
-        "type": "plugin_action",
-        "label": label,
-        "pending_label": "加载中",
-        "icon": icon,
-        "action": "browse",
-        "payload": {
-            "media_type": media_type,
-            "time_window": time_window,
-            "page": page,
-        }
-    })
-}
-
-fn browse_request(request: &SubscribeRequest) -> BrowseRequest {
-    BrowseRequest {
-        media_type: request.browse_media_type.clone(),
-        time_window: request.time_window.clone(),
-        page: request.page,
-    }
 }
 
 fn status_label(status: &MediaStatus) -> Option<&'static str> {
@@ -433,12 +298,17 @@ fn media_identity(media: &TmdbMedia) -> Option<String> {
     (media.id > 0).then(|| format!("{media_type}:{}", media.id))
 }
 
-fn normalize_media_type(value: &str) -> &'static str {
-    match value.trim() {
-        "movie" => "movie",
-        "tv" => "tv",
-        _ => "all",
-    }
+fn is_safe_category_card(media: &TmdbMedia, category: &str) -> bool {
+    media.id > 0
+        && !is_adult_media(media)
+        && media_title(media).is_some()
+        && media
+            .poster_path
+            .as_deref()
+            .is_some_and(|path| !path.is_empty())
+        && media_year(media).is_some_and(|year| year >= 1900)
+        && !media.genre_ids.is_empty()
+        && (!matches!(category, "domestic_movie" | "domestic_tv") || media_has_cjk_title(media))
 }
 
 fn normalize_item_media_type(value: &str) -> Option<&'static str> {
@@ -449,12 +319,73 @@ fn normalize_item_media_type(value: &str) -> Option<&'static str> {
     }
 }
 
-fn normalize_time_window(value: &str) -> &'static str {
-    if value.trim() == "week" {
-        "week"
-    } else {
-        "day"
+fn media_title(media: &TmdbMedia) -> Option<&str> {
+    media
+        .title
+        .as_deref()
+        .or(media.name.as_deref())
+        .filter(|title| !title.trim().is_empty())
+}
+
+fn media_year(media: &TmdbMedia) -> Option<i32> {
+    media
+        .release_date
+        .as_deref()
+        .or(media.first_air_date.as_deref())
+        .and_then(|date| date.get(..4))
+        .and_then(|year| year.parse().ok())
+}
+
+fn media_has_cjk_title(media: &TmdbMedia) -> bool {
+    [
+        media.title.as_deref(),
+        media.name.as_deref(),
+        media.original_title.as_deref(),
+        media.original_name.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .any(|title| {
+        title
+            .chars()
+            .any(|character| ('\u{3400}'..='\u{9fff}').contains(&character))
+    })
+}
+
+fn is_adult_media(media: &TmdbMedia) -> bool {
+    if media.adult {
+        return true;
     }
+    let text = [
+        media.title.as_deref(),
+        media.name.as_deref(),
+        media.original_title.as_deref(),
+        media.original_name.as_deref(),
+        media.overview.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" ")
+    .to_ascii_lowercase();
+    let compact = text.split_whitespace().collect::<String>();
+    ADULT_TEXT_PATTERNS.iter().any(|pattern| {
+        let pattern = pattern.to_ascii_lowercase();
+        if pattern.is_ascii() {
+            contains_ascii_phrase(&text, &pattern)
+        } else {
+            compact.contains(&pattern)
+        }
+    })
+}
+
+fn contains_ascii_phrase(text: &str, pattern: &str) -> bool {
+    text.match_indices(pattern).any(|(start, matched)| {
+        let before = text[..start].chars().next_back();
+        let after = text[start + matched.len()..].chars().next();
+        before.is_none_or(|character| !character.is_ascii_alphanumeric())
+            && after.is_none_or(|character| !character.is_ascii_alphanumeric())
+    })
 }
 
 fn normalized_path(path: &str) -> String {
@@ -475,18 +406,6 @@ async fn get_json(
         .get(format!("{}{}", context.api_url, path))
         .query(query)
         .bearer_auth(&context.token)
-        .send()
-        .await
-        .map_err(|error| error.to_string())?;
-    parse_response(response).await
-}
-
-async fn post_json(context: &PluginContext, path: &str, body: Value) -> Result<Value, String> {
-    let response = context
-        .client
-        .post(format!("{}{}", context.api_url, path))
-        .bearer_auth(&context.token)
-        .json(&body)
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -525,18 +444,6 @@ fn required_env(name: &str) -> Result<String, String> {
     env::var(name).map_err(|_| format!("缺少运行时环境变量 {name}"))
 }
 
-fn default_media_type() -> String {
-    "all".to_string()
-}
-
-fn default_time_window() -> String {
-    "day".to_string()
-}
-
-fn default_page() -> i32 {
-    1
-}
-
 fn truncate(value: &str, max_chars: usize) -> String {
     let text = value.chars().take(max_chars).collect::<String>();
     if value.chars().count() > max_chars {
@@ -570,17 +477,51 @@ mod tests {
     }
 
     #[test]
-    fn pagination_stays_inside_available_pages() {
-        assert_eq!(pagination_actions("all", "day", 1, 3).len(), 1);
-        assert_eq!(pagination_actions("all", "day", 2, 3).len(), 2);
-        assert_eq!(pagination_actions("all", "day", 3, 3).len(), 1);
+    fn category_cards_require_the_same_core_fields_as_115sub() {
+        let media = TmdbMedia {
+            id: 42,
+            title: Some("测试电影".to_string()),
+            release_date: Some("2026-01-01".to_string()),
+            poster_path: Some("/poster.jpg".to_string()),
+            media_type: Some("movie".to_string()),
+            genre_ids: vec![18],
+            ..TmdbMedia::default()
+        };
+        assert!(is_safe_category_card(&media, "domestic_movie"));
+        assert!(!is_safe_category_card(
+            &TmdbMedia {
+                poster_path: None,
+                ..media.clone()
+            },
+            "domestic_movie"
+        ));
+        assert!(!is_safe_category_card(
+            &TmdbMedia {
+                title: Some("Adult Movie".to_string()),
+                ..media
+            },
+            "foreign_movie"
+        ));
     }
 
     #[test]
-    fn normalizes_supported_browse_values() {
-        assert_eq!(normalize_media_type("movie"), "movie");
-        assert_eq!(normalize_media_type("person"), "all");
-        assert_eq!(normalize_time_window("week"), "week");
-        assert_eq!(normalize_time_window("month"), "day");
+    fn subscribable_items_open_the_host_subscription_dialog() {
+        let item = media_item(
+            &TmdbMedia {
+                id: 42,
+                title: Some("测试电影".to_string()),
+                release_date: Some("2026-01-01".to_string()),
+                poster_path: Some("/poster.jpg".to_string()),
+                vote_average: Some(8.2),
+                media_type: Some("movie".to_string()),
+                genre_ids: vec![18],
+                ..TmdbMedia::default()
+            },
+            "国内电影",
+            MediaStatus::default(),
+        );
+        assert_eq!(item["actions"][0]["type"], "subscription_create");
+        assert_eq!(item["actions"][0]["payload"]["tmdb_id"], 42);
+        assert_eq!(item["actions"][0]["payload"]["media_type"], "movie");
     }
 }

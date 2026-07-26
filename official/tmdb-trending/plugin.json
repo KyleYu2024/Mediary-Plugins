@@ -2,75 +2,31 @@
   "api_version": 1,
   "id": "tmdb-trending",
   "name": "TMDB 热门",
-  "version": "0.1.0",
-  "description": "浏览 TMDB 日榜和周榜，查看入库/订阅状态并一键创建 Mediary 订阅",
+  "version": "0.2.0",
+  "description": "按国内剧集、国外剧集、国内电影、国外电影和动漫浏览 TMDB 热门内容",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
   "requested_scopes": [
     "catalog:read",
-    "subscriptions:read",
-    "subscriptions:write"
+    "subscriptions:read"
   ],
   "auto_grant_scopes": true,
   "interactive_view": {
-    "title": "TMDB 热门",
-    "eyebrow": "万象寻踪",
     "action": "browse",
     "layout": "poster_grid",
+    "minimal": true,
     "auto_run": true,
     "trigger": {
-      "label": "浏览",
+      "label": "打开",
       "icon": "film"
     },
-    "submit": {
-      "label": "查看",
-      "pending_label": "加载中",
-      "icon": "search"
-    },
-    "fields": [
-      {
-        "key": "media_type",
-        "type": "select",
-        "label": "内容类型",
-        "default": "all",
-        "options": [
-          {
-            "label": "全部",
-            "value": "all"
-          },
-          {
-            "label": "电影",
-            "value": "movie"
-          },
-          {
-            "label": "剧集",
-            "value": "tv"
-          }
-        ]
-      },
-      {
-        "key": "time_window",
-        "type": "select",
-        "label": "榜单周期",
-        "default": "day",
-        "options": [
-          {
-            "label": "今日热门",
-            "value": "day"
-          },
-          {
-            "label": "本周热门",
-            "value": "week"
-          }
-        ]
-      }
-    ],
+    "fields": [],
     "empty": {
-      "text": "正在读取 TMDB 热门内容",
+      "text": "正在加载分类内容",
       "icon": "film"
     },
-    "empty_result_text": "当前榜单没有可显示的电影或剧集。",
+    "empty_result_text": "当前没有可显示的分类内容。",
     "error_message": "TMDB 热门加载失败，请检查 Mediary 的 TMDB 配置。"
   },
   "settings_schema": {
