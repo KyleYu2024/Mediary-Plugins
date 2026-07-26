@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+payload="$(cat)"
+
+case "${MEDIARY_PLUGIN_ACTION:-}" in
+  hello)
+    printf '{"notice":"示例动作执行完成","received":%s}\n' "$payload"
+    ;;
+  *)
+    printf '不支持的动作: %s\n' "${MEDIARY_PLUGIN_ACTION:-<empty>}" >&2
+    exit 2
+    ;;
+esac
