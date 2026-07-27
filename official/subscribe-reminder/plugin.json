@@ -1,0 +1,134 @@
+{
+  "api_version": 1,
+  "id": "subscribe-reminder",
+  "name": "订阅提醒",
+  "version": "0.1.0",
+  "description": "每天汇总当天更新的剧集订阅，按播出时间发送清晰的追更提醒",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "remind",
+      "label": "立即提醒",
+      "cron_setting": "cron",
+      "timeout_seconds": 180
+    }
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "notifications:send"
+  ],
+  "auto_grant_scopes": true,
+  "data_view": {
+    "title": "提醒记录",
+    "file": "data/history.json",
+    "item_label": "运行记录",
+    "summary": [
+      {
+        "key": "runs",
+        "label": "运行次数"
+      },
+      {
+        "key": "notifications",
+        "label": "已发通知"
+      },
+      {
+        "key": "last_count",
+        "label": "最近更新"
+      },
+      {
+        "key": "last_result",
+        "label": "最近结果"
+      }
+    ],
+    "fields": [
+      {
+        "key": "date",
+        "label": "日期"
+      },
+      {
+        "key": "result",
+        "label": "结果",
+        "primary": true
+      },
+      {
+        "key": "count",
+        "label": "剧集"
+      },
+      {
+        "key": "notification_count",
+        "label": "通知"
+      },
+      {
+        "key": "trigger",
+        "label": "触发方式"
+      },
+      {
+        "key": "finished_at",
+        "label": "完成时间"
+      }
+    ]
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "提醒设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "cron",
+            "type": "text",
+            "label": "提醒时间",
+            "placeholder": "5 位 cron 表达式，默认每天 09:00",
+            "default": "0 9 * * *",
+            "help": "使用 Mediary 所在时区，例如 0 8 * * * 表示每天 08:00。"
+          },
+          {
+            "key": "show_progress",
+            "type": "switch",
+            "label": "显示订阅进度",
+            "default": true
+          },
+          {
+            "key": "notify_when_empty",
+            "type": "switch",
+            "label": "无更新时也通知",
+            "default": false
+          },
+          {
+            "key": "max_per_message",
+            "type": "select",
+            "label": "每条通知最多显示",
+            "default": 8,
+            "options": [
+              {
+                "label": "6 部",
+                "value": 6
+              },
+              {
+                "label": "8 部",
+                "value": 8
+              },
+              {
+                "label": "12 部",
+                "value": 12
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "只提醒当天更新的剧集订阅，不处理电影。定时任务同一天只发送一次；点击“立即提醒”可再次发送，便于测试通知效果。",
+        "fields": []
+      }
+    ]
+  }
+}

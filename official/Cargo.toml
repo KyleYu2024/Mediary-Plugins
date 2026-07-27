@@ -15,6 +15,10 @@ path = "src/bin/pansou-plugin.rs"
 name = "tmdb-trending-plugin"
 path = "src/bin/tmdb-trending-plugin.rs"
 
+[[bin]]
+name = "subscribe-reminder-plugin"
+path = "src/bin/subscribe-reminder-plugin.rs"
+
 [dependencies]
 chrono = { version = "0.4", features = ["clock"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }

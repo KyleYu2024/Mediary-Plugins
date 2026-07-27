@@ -1,0 +1,186 @@
+{
+  "api_version": 1,
+  "id": "pt-flow-manager",
+  "name": "PT 流量管家",
+  "version": "1.0.0",
+  "description": "按站点独立调度 PT 选种、带宽保护、保种托管、动态删种与运行诊断",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "tick",
+      "label": "定时检查",
+      "manual": false,
+      "cron": "* * * * *",
+      "timeout_seconds": 1800
+    }
+  ],
+  "requested_scopes": [
+    "torrents:read",
+    "downloads:create",
+    "downloader:read",
+    "downloads:write",
+    "notifications:send",
+    "subscriptions:read"
+  ],
+  "auto_grant_scopes": false,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "全局运行限额",
+        "alert": "留空或设置为 0 表示不限制；任务自己的限额会与全局限额同时生效。",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          },
+          {
+            "key": "global_max_size_gb",
+            "type": "number",
+            "label": "全局保种体积（GB）",
+            "default": 0,
+            "min": 0,
+            "step": 1
+          },
+          {
+            "key": "global_max_downloading",
+            "type": "number",
+            "label": "全局同时下载数",
+            "default": 0,
+            "min": 0,
+            "step": 1
+          },
+          {
+            "key": "global_max_upload_kbps",
+            "type": "number",
+            "label": "全局上传带宽（KB/s）",
+            "default": 0,
+            "min": 0,
+            "step": 1
+          },
+          {
+            "key": "global_max_download_kbps",
+            "type": "number",
+            "label": "全局下载带宽（KB/s）",
+            "default": 0,
+            "min": 0,
+            "step": 1
+          },
+          {
+            "key": "history_limit",
+            "type": "number",
+            "label": "最大托管记录数",
+            "default": 2000,
+            "min": 100,
+            "max": 20000,
+            "step": 100
+          }
+        ]
+      }
+    ]
+  },
+  "interactive_view": {
+    "title": "PT 流量管家",
+    "eyebrow": "站点任务工作台",
+    "action": "dashboard",
+    "trigger": {
+      "label": "打开",
+      "icon": "refresh"
+    },
+    "submit": {
+      "label": "保存任务",
+      "pending_label": "保存中",
+      "icon": "edit"
+    },
+    "auto_run": true,
+    "layout": "list",
+    "form_collapsible": true,
+    "fields": [
+      {"key": "id", "type": "hidden", "default": ""},
+      {"key": "name", "type": "text", "section": "基础与调度", "label": "任务名称", "placeholder": "例如：观众免费刷流"},
+      {"key": "site_id", "type": "select", "section": "基础与调度", "label": "站点", "default": 0},
+      {"key": "downloader", "type": "select", "section": "基础与调度", "label": "下载器", "default": ""},
+      {"key": "enabled", "type": "switch", "section": "基础与调度", "label": "启用任务", "default": true},
+      {"key": "notify", "type": "switch", "section": "基础与调度", "label": "发送通知", "default": true},
+      {"key": "brush_interval", "type": "number", "section": "基础与调度", "label": "选种周期（分钟）", "default": 10, "min": 1, "max": 1440},
+      {"key": "check_interval", "type": "number", "section": "基础与调度", "label": "检查周期（分钟）", "default": 5, "min": 1, "max": 1440},
+      {"key": "cron", "type": "text", "section": "基础与调度", "label": "选种 CRON", "placeholder": "留空使用选种周期"},
+      {"key": "active_time_range", "type": "text", "section": "基础与调度", "label": "开启时间段", "placeholder": "00:00-08:00"},
+      {"key": "save_path", "type": "text", "section": "基础与调度", "label": "保存目录"},
+      {
+        "key": "promotion",
+        "type": "select",
+        "section": "选种规则",
+        "label": "促销",
+        "default": "free",
+        "options": [
+          {"label": "全部", "value": "all"},
+          {"label": "免费", "value": "free"},
+          {"label": "2X 免费", "value": "2xfree"}
+        ]
+      },
+      {"key": "rss_support", "type": "switch", "section": "选种规则", "label": "使用 RSS", "default": false},
+      {"key": "except_subscriptions", "type": "switch", "section": "选种规则", "label": "排除订阅内容", "default": true},
+      {"key": "exclude_hr", "type": "switch", "section": "选种规则", "label": "排除 H&R", "default": true},
+      {"key": "site_hr_active", "type": "switch", "section": "选种规则", "label": "全站按 H&R 托管", "default": false},
+      {"key": "include", "type": "text", "section": "选种规则", "label": "包含正则"},
+      {"key": "exclude", "type": "text", "section": "选种规则", "label": "排除正则"},
+      {"key": "size_gb", "type": "text", "section": "选种规则", "label": "种子大小（GB）", "placeholder": "5-100"},
+      {"key": "seeders", "type": "text", "section": "选种规则", "label": "做种人数", "placeholder": "0-5"},
+      {"key": "pubtime_minutes", "type": "text", "section": "选种规则", "label": "发布时间（分钟）", "default": "0-30"},
+      {"key": "timezone_offset_hours", "type": "number", "section": "选种规则", "label": "站点时区偏移（小时）", "default": 0, "step": 0.5},
+      {"key": "max_total_size_gb", "type": "number", "section": "运行限额", "label": "任务保种体积（GB）", "default": 0, "min": 0},
+      {"key": "max_downloading", "type": "number", "section": "运行限额", "label": "任务同时下载数", "default": 0, "min": 0},
+      {"key": "max_upload_kbps", "type": "number", "section": "运行限额", "label": "停止选种上传带宽（KB/s）", "default": 0, "min": 0},
+      {"key": "max_download_kbps", "type": "number", "section": "运行限额", "label": "停止选种下载带宽（KB/s）", "default": 0, "min": 0},
+      {"key": "max_add_per_run", "type": "number", "section": "运行限额", "label": "每轮最多添加", "default": 2, "min": 1, "max": 50},
+      {"key": "torrent_upload_limit_kbps", "type": "number", "section": "运行限额", "label": "单种上传限速（KB/s）", "default": 0, "min": 0},
+      {"key": "torrent_download_limit_kbps", "type": "number", "section": "运行限额", "label": "单种下载限速（KB/s）", "default": 0, "min": 0},
+      {"key": "seed_time_hours", "type": "number", "section": "删种规则", "label": "做种时间（小时）", "default": 0, "min": 0, "step": 0.5},
+      {"key": "hr_seed_time_hours", "type": "number", "section": "删种规则", "label": "H&R 做种时间（小时）", "default": 0, "min": 0, "step": 0.5},
+      {"key": "seed_ratio", "type": "number", "section": "删种规则", "label": "分享率", "default": 0, "min": 0, "step": 0.1},
+      {"key": "seed_upload_gb", "type": "number", "section": "删种规则", "label": "上传量（GB）", "default": 0, "min": 0, "step": 0.5},
+      {"key": "download_timeout_hours", "type": "number", "section": "删种规则", "label": "下载超时（小时）", "default": 0, "min": 0, "step": 0.5},
+      {"key": "inactive_minutes", "type": "number", "section": "删种规则", "label": "无活动时间（分钟）", "default": 0, "min": 0},
+      {"key": "avg_upload_kbps", "type": "number", "section": "删种规则", "label": "最低平均上传（KB/s）", "default": 0, "min": 0},
+      {"key": "dynamic_delete", "type": "switch", "section": "删种规则", "label": "动态删种", "default": false},
+      {"key": "delete_promotion_ended", "type": "switch", "section": "删种规则", "label": "删除促销结束的未完成任务", "default": false},
+      {"key": "delete_size_gb", "type": "text", "section": "删种规则", "label": "动态删种阈值（GB）", "placeholder": "100 或 50-100"},
+      {"key": "delete_files", "type": "switch", "section": "删种规则", "label": "删种同时删除文件", "default": true},
+      {"key": "delete_except_tags", "type": "text", "section": "删种规则", "label": "删种排除标签", "default": "H&R"},
+      {"key": "category", "type": "text", "section": "高级", "label": "下载器分类", "default": "刷流"},
+      {"key": "extra_tags", "type": "text", "section": "高级", "label": "额外标签", "placeholder": "英文逗号分隔"},
+      {"key": "skip_download_tips", "type": "switch", "section": "高级", "label": "自动跳过下载提示", "default": false},
+      {"key": "auto_archive_days", "type": "number", "section": "高级", "label": "已删除记录保留天数", "default": 30, "min": 0}
+    ],
+    "empty": {
+      "text": "填写任务配置，或从可用站点创建任务",
+      "icon": "plus"
+    },
+    "error_message": "PT 流量管家操作失败，请检查插件权限和 Mediary 日志。"
+  },
+  "data_view": {
+    "title": "运行诊断",
+    "file": "data/dashboard.json",
+    "item_label": "运行记录",
+    "summary": [
+      {"key": "tasks", "label": "任务"},
+      {"key": "enabled", "label": "运行中"},
+      {"key": "active", "label": "托管种子"},
+      {"key": "deleted", "label": "已删除"}
+    ],
+    "fields": [
+      {"key": "task", "label": "任务", "primary": true},
+      {"key": "kind", "label": "类型"},
+      {"key": "message", "label": "结果"},
+      {"key": "scanned", "label": "扫描"},
+      {"key": "accepted", "label": "添加"},
+      {"key": "deleted", "label": "删除"},
+      {"key": "reasons", "label": "诊断"},
+      {"key": "finished_at", "label": "完成时间"}
+    ]
+  }
+}

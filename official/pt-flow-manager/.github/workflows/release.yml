@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag and manifest versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          manifest_version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+          plugin_version="$(jq -r .version plugin.json)"
+          test "${version}" = "${manifest_version}"
+          test "${version}" = "${plugin_version}"
+
+      - name: Test
+        run: cargo test --locked
+
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-amd64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - platform: darwin-amd64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - platform: darwin-arm64
+            runner: macos-15
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --locked --release --target "${{ matrix.target }}"
+
+      - name: Package
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          version="$(jq -r .version plugin.json)"
+          mkdir -p package dist
+          cp "target/${TARGET}/release/mediary-pt-flow" package/plugin
+          cp plugin.json package/plugin.json
+          chmod 755 package/plugin
+          tar -C package -czf "dist/pt-flow-manager-v${version}-${PLATFORM}.tar.gz" plugin plugin.json
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pt-flow-manager-${{ matrix.platform }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pt-flow-manager-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz > SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PT 流量管家 ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
+          body: |
+            Requires Mediary 0.8.8 or later.
+
+            Requested scopes: `torrents:read`, `downloads:create`,
+            `downloader:read`, `downloads:write`, `notifications:send`, and
+            `subscriptions:read`.
+
+            The plugin sends tracker and downloader requests only through
+            Mediary's scoped plugin API. It has no telemetry and does not send
+            data to any service other than the user-configured PT sites,
+            downloaders, and notification channels used by Mediary.
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
