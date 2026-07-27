@@ -76,6 +76,48 @@
       }
     },
     {
+      "id": "pt-flow-manager",
+      "name": "PT 流量管家",
+      "version": "1.0.0",
+      "description": "按站点独立调度 PT 选种、带宽保护、保种托管、动态删种与运行诊断",
+      "author": "KyleYu2024",
+      "homepage": "https://github.com/KyleYu2024/Mediary-PT-Flow",
+      "source": "https://github.com/KyleYu2024/Mediary-PT-Flow",
+      "license": "GPL-3.0-only",
+      "api_version": 1,
+      "min_mediary_version": "0.8.8",
+      "permissions": [
+        "torrents:read",
+        "downloads:create",
+        "downloader:read",
+        "downloads:write",
+        "notifications:send",
+        "subscriptions:read"
+      ],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-PT-Flow/releases/download/v1.0.0/pt-flow-manager-v1.0.0-linux-amd64.tar.gz",
+          "sha256": "903b8ec6b571107c6eaaaa0dc8f25022ba0c69010adefe66993e7e9151c46166",
+          "size": 3255352
+        },
+        "linux-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-PT-Flow/releases/download/v1.0.0/pt-flow-manager-v1.0.0-linux-arm64.tar.gz",
+          "sha256": "0c69db7d0534080238578692291d17ed52db7386b3d8e8508efca9296f58e2a8",
+          "size": 3273512
+        },
+        "darwin-amd64": {
+          "url": "https://github.com/KyleYu2024/Mediary-PT-Flow/releases/download/v1.0.0/pt-flow-manager-v1.0.0-darwin-amd64.tar.gz",
+          "sha256": "4e3a4bed7253ef663d42a15b6cba35a0cb34fd03159a0832013994b5037c1270",
+          "size": 3067189
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/KyleYu2024/Mediary-PT-Flow/releases/download/v1.0.0/pt-flow-manager-v1.0.0-darwin-arm64.tar.gz",
+          "sha256": "8994cdc5b1a95ebbc2cee9324c4ec0b9fcade5a1bc5af76a8acc9414356ebd26",
+          "size": 2940722
+        }
+      }
+    },
+    {
       "id": "tmdb-trending",
       "name": "TMDB 热门",
       "version": "0.3.0",
