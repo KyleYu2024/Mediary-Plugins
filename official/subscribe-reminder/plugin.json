@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "subscribe-reminder",
   "name": "订阅提醒",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "每天汇总当天更新的剧集订阅，按播出时间发送清晰的追更提醒",
   "action_runtime": {
     "entrypoint": "./plugin"

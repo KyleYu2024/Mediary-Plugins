@@ -324,21 +324,18 @@ fn format_batch(reminders: &[ReminderItem], show_progress: bool) -> String {
     let mut lines = vec![format!("今天有 {} 部订阅剧集更新", reminders.len())];
     for reminder in reminders {
         lines.push(String::new());
-        let time = reminder
-            .local_air_at
-            .map(|value| format!("{:02}:{:02}", value.hour(), value.minute()))
-            .unwrap_or_else(|| "今日".to_string());
-        let state = reminder
-            .local_air_at
-            .map(|value| {
-                if value <= now {
-                    "已更新"
-                } else {
-                    "待播出"
-                }
-            })
-            .unwrap_or("更新日");
-        lines.push(format!("{time}  {state}"));
+        if let Some(value) = reminder.local_air_at {
+            let state = if value <= now {
+                "已更新"
+            } else {
+                "待播出"
+            };
+            lines.push(format!(
+                "{:02}:{:02}  {state}",
+                value.hour(),
+                value.minute()
+            ));
+        }
         lines.push(format!(
             "{}{} · {}",
             reminder.subscription.name,
@@ -631,6 +628,19 @@ mod tests {
             Some("https://images.example/show.jpg")
         );
         assert_eq!(tmdb_image_url("relative.jpg"), None);
+    }
+
+    #[test]
+    fn omits_redundant_date_label_without_exact_airtime() {
+        let reminder = ReminderItem {
+            subscription: subscription(),
+            episode_numbers: vec![9, 10],
+            local_air_at: None,
+        };
+        let content = format_batch(&[reminder], true);
+        assert!(!content.contains("今日"));
+        assert!(!content.contains("更新日"));
+        assert!(content.contains("测试剧集 (2026) · S01E09-10"));
     }
 
     #[test]
