@@ -34,26 +34,14 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后 MCP 服务通过 /mcp 端点（与 Mediary 共用端口）接收 AI 客户端请求。首次启用需在下方权限设置中手动勾选所需权限。",
+            "help": "启用后 MCP 服务通过 /mcp 端点（与 Mediary 共用端口）接收 AI 客户端请求。外部调用需携带 Mediary API Token 鉴权，首次启用需在下方权限设置中手动勾选所需权限。",
             "default": false
-          }
-        ]
-      },
-      {
-        "title": "API Token 鉴权",
-        "fields": [
-          {
-            "key": "mcp_api_token",
-            "type": "text",
-            "label": "MCP 访问令牌",
-            "placeholder": "留空则不启用鉴权",
-            "help": "设置后 AI 客户端需在请求 Header 中携带 Authorization: Bearer <Token> 才能访问 /mcp 端点。令牌由 Mediary 代理层验证。"
           }
         ]
       }
     ]
   },
-  "secret_fields": ["mcp_api_token"],
+  "secret_fields": [],
   "interactive_view": {
     "title": "MCP Server",
     "eyebrow": "AI 连接服务",
