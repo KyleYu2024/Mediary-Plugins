@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 const root = process.cwd();
 const ignoredDirectories = new Set(['.git', 'node_modules', 'target']);
@@ -32,7 +32,7 @@ for (const file of markdownFiles(root)) {
 
     const target = decodeURIComponent(rawTarget.split('#')[0]);
     const resolved = resolve(dirname(file), target);
-    if (!resolved.startsWith(`${root}/`) || !existsSync(resolved)) {
+    if (!resolved.startsWith(root + sep) || !existsSync(resolved)) {
       failures.push(`${relative(root, file)} -> ${rawTarget}`);
       continue;
     }
