@@ -3,7 +3,7 @@
   "id": "mcp-server",
   "name": "MCP Server",
   "version": "0.1.0",
-  "description": "提供 MCP (Model Context Protocol) 服务，通过 Mediary 代理暴露端点，支持 OpenClaw、Hemes 等 AI 客户端连接并调用 Mediary 功能。",
+  "description": "提供 MCP (Model Context Protocol) 服务，通过 Mediary /mcp 端点暴露，支持 OpenClaw、Hemes 等 AI 客户端连接并调用 Mediary 功能。",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -34,7 +34,7 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后在 127.0.0.1:8100 启动内部 MCP 服务，由 Mediary 代理至 /mcp，AI 客户端通过 Mediary 地址直接访问。",
+            "help": "启用后 MCP 服务随 Mediary 运行，通过 /mcp 端点（Mediary 同端口）接收 AI 客户端请求。",
             "default": false
           }
         ]
@@ -88,7 +88,7 @@
     "layout": "list",
     "fields": [],
     "empty": {
-      "text": "MCP 服务运行中 — 通过 /mcp 访问 | 已支持 18 个工具",
+      "text": "MCP 服务运行中 — 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具",
       "icon": "server"
     },
     "empty_result_text": "MCP 服务未运行。请在设置中启用该插件。",

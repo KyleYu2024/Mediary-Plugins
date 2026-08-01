@@ -1,19 +1,7 @@
-use axum::{
-    extract::{Query, State},
-    http::{header, HeaderMap, StatusCode},
-    response::{sse::Event, Json, Sse},
-    routing::post,
-    Router,
-};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::sync::broadcast;
-use tokio_stream::wrappers::BroadcastStream;
-use tokio_stream::StreamExt;
+use serde_json::{Value, json};
+use std::env;
 
 // ── JSON-RPC 2.0 Types ──────────────────────────────────────────
 
@@ -64,19 +52,19 @@ impl JsonRpcResponse {
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-struct ClientInfo {
-    name: String,
-    version: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct InitializeParams {
     #[serde(rename = "protocolVersion")]
     protocol_version: String,
     capabilities: Value,
     #[serde(rename = "clientInfo")]
     client_info: ClientInfo,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct ClientInfo {
+    name: String,
+    version: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -464,66 +452,65 @@ fn define_tools() -> Vec<ToolDefinition> {
     ]
 }
 
-// ── App State ───────────────────────────────────────────────────
-
-struct AppState {
-    api_url: String,
-    api_token: String,
-    http_client: reqwest::Client,
-    sse_tx: broadcast::Sender<String>,
-    request_counter: AtomicU64,
-}
-
 // ── Mediary API Helpers ─────────────────────────────────────────
 
-async fn api_get(state: &AppState, path: &str) -> Result<Value, String> {
-    let url = format!("{}{}", state.api_url, path);
-    let resp = state
+struct PluginContext {
+    api_url: String,
+    api_token: String,
+    http_client: Client,
+}
+
+async fn api_get(ctx: &PluginContext, path: &str) -> Result<Value, String> {
+    let url = format!("{}{}", ctx.api_url, path);
+    let resp = ctx
         .http_client
         .get(&url)
-        .bearer_auth(&state.api_token)
+        .bearer_auth(&ctx.api_token)
         .send()
         .await
         .map_err(|e| format!("HTTP 请求失败: {e}"))?;
-    let status = resp.status();
-    let body: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
-    if status.is_success() {
-        Ok(body)
-    } else {
-        let msg = body.get("message").and_then(Value::as_str).unwrap_or("未知错误");
-        Err(format!("API 错误 ({}): {msg}", status.as_u16()))
-    }
+    parse_response(resp).await
 }
 
-async fn api_post(state: &AppState, path: &str, payload: Value) -> Result<Value, String> {
-    let url = format!("{}{}", state.api_url, path);
-    let resp = state
+async fn api_post(ctx: &PluginContext, path: &str, payload: Value) -> Result<Value, String> {
+    let url = format!("{}{}", ctx.api_url, path);
+    let resp = ctx
         .http_client
         .post(&url)
-        .bearer_auth(&state.api_token)
+        .bearer_auth(&ctx.api_token)
         .json(&payload)
         .send()
         .await
         .map_err(|e| format!("HTTP 请求失败: {e}"))?;
-    let status = resp.status();
-    let body: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
-    if status.is_success() {
-        Ok(body)
-    } else {
-        let msg = body.get("message").and_then(Value::as_str).unwrap_or("未知错误");
-        Err(format!("API 错误 ({}): {msg}", status.as_u16()))
-    }
+    parse_response(resp).await
 }
 
-async fn api_delete(state: &AppState, path: &str) -> Result<Value, String> {
-    let url = format!("{}{}", state.api_url, path);
-    let resp = state
+async fn api_delete(ctx: &PluginContext, path: &str) -> Result<Value, String> {
+    let url = format!("{}{}", ctx.api_url, path);
+    let resp = ctx
         .http_client
         .delete(&url)
-        .bearer_auth(&state.api_token)
+        .bearer_auth(&ctx.api_token)
         .send()
         .await
         .map_err(|e| format!("HTTP 请求失败: {e}"))?;
+    parse_response(resp).await
+}
+
+async fn api_patch(ctx: &PluginContext, path: &str, payload: Value) -> Result<Value, String> {
+    let url = format!("{}{}", ctx.api_url, path);
+    let resp = ctx
+        .http_client
+        .patch(&url)
+        .bearer_auth(&ctx.api_token)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP 请求失败: {e}"))?;
+    parse_response(resp).await
+}
+
+async fn parse_response(resp: reqwest::Response) -> Result<Value, String> {
     let status = resp.status();
     let body: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
     if status.is_success() {
@@ -534,50 +521,31 @@ async fn api_delete(state: &AppState, path: &str) -> Result<Value, String> {
     }
 }
 
-async fn exec_catalog_search(state: &AppState, args: &Value) -> Result<Value, String> {
-    let query = args
-        .get("query")
-        .and_then(Value::as_str)
-        .unwrap_or("");
-    let limit = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(10);
+// ── Tool Executors ──────────────────────────────────────────────
+
+async fn exec_catalog_search(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let query = args.get("query").and_then(Value::as_str).unwrap_or("");
+    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(10);
     let path = format!("/catalog/search?q={query}&limit={limit}");
-    api_get(state, &path).await
+    api_get(ctx, &path).await
 }
 
-async fn exec_subscriptions_list(state: &AppState, args: &Value) -> Result<Value, String> {
-    let status = args
-        .get("status")
-        .and_then(Value::as_str)
-        .unwrap_or("all");
-    let limit = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(20);
+async fn exec_subscriptions_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let status = args.get("status").and_then(Value::as_str).unwrap_or("all");
+    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
     let path = format!("/subscriptions?status={status}&limit={limit}");
-    api_get(state, &path).await
+    api_get(ctx, &path).await
 }
 
-async fn exec_downloads_list(state: &AppState, args: &Value) -> Result<Value, String> {
-    let status = args
-        .get("status")
-        .and_then(Value::as_str)
-        .unwrap_or("all");
-    let limit = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(20);
+async fn exec_downloads_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let status = args.get("status").and_then(Value::as_str).unwrap_or("all");
+    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
     let path = format!("/downloads?status={status}&limit={limit}");
-    api_get(state, &path).await
+    api_get(ctx, &path).await
 }
 
-async fn exec_downloads_create(state: &AppState, args: &Value) -> Result<Value, String> {
-    let url = args
-        .get("url")
-        .and_then(Value::as_str)
-        .ok_or("缺少 url 参数")?;
+async fn exec_downloads_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let url = args.get("url").and_then(Value::as_str).ok_or("缺少 url 参数")?;
     let save_path = args.get("save_path").and_then(Value::as_str).unwrap_or("");
     let category = args.get("category").and_then(Value::as_str).unwrap_or("");
     let mut payload = json!({ "url": url });
@@ -587,110 +555,63 @@ async fn exec_downloads_create(state: &AppState, args: &Value) -> Result<Value, 
     if !category.is_empty() {
         payload["category"] = json!(category);
     }
-    api_post(state, "/downloads", payload).await
+    api_post(ctx, "/downloads", payload).await
 }
 
-async fn exec_sites_list(state: &AppState) -> Result<Value, String> {
-    api_get(state, "/sites").await
+async fn exec_sites_list(ctx: &PluginContext) -> Result<Value, String> {
+    api_get(ctx, "/sites").await
 }
 
-async fn exec_downloader_status(state: &AppState) -> Result<Value, String> {
-    api_get(state, "/downloader").await
+async fn exec_downloader_status(ctx: &PluginContext) -> Result<Value, String> {
+    api_get(ctx, "/downloader").await
 }
 
-async fn exec_torrents_list(state: &AppState, args: &Value) -> Result<Value, String> {
-    let limit = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(20);
+async fn exec_torrents_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
     let path = format!("/torrents?limit={limit}");
-    api_get(state, &path).await
+    api_get(ctx, &path).await
 }
 
-async fn exec_subscriptions_create(state: &AppState, args: &Value) -> Result<Value, String> {
-    let title = args
-        .get("title")
-        .and_then(Value::as_str)
-        .ok_or("缺少 title 参数")?;
-    let media_type = args
-        .get("media_type")
-        .and_then(Value::as_str)
-        .unwrap_or("movie");
+async fn exec_subscriptions_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let title = args.get("title").and_then(Value::as_str).ok_or("缺少 title 参数")?;
+    let media_type = args.get("media_type").and_then(Value::as_str).unwrap_or("movie");
     let tmdb_id = args.get("tmdb_id").and_then(Value::as_u64);
     let year = args.get("year").and_then(Value::as_u64);
 
-    let mut payload = json!({
-        "title": title,
-        "media_type": media_type
-    });
+    let mut payload = json!({ "title": title, "media_type": media_type });
     if let Some(id) = tmdb_id {
         payload["tmdb_id"] = json!(id);
     }
     if let Some(y) = year {
         payload["year"] = json!(y);
     }
-    api_post(state, "/subscriptions", payload).await
+    api_post(ctx, "/subscriptions", payload).await
 }
 
-async fn exec_subscriptions_delete(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
+async fn exec_subscriptions_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
     let path = format!("/subscriptions/{id}");
-    api_delete(state, &path).await
+    api_delete(ctx, &path).await
 }
 
-async fn api_patch(state: &AppState, path: &str, payload: Value) -> Result<Value, String> {
-    let url = format!("{}{}", state.api_url, path);
-    let resp = state
-        .http_client
-        .patch(&url)
-        .bearer_auth(&state.api_token)
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|e| format!("HTTP 请求失败: {e}"))?;
-    let status = resp.status();
-    let body: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
-    if status.is_success() {
-        Ok(body)
-    } else {
-        let msg = body.get("message").and_then(Value::as_str).unwrap_or("未知错误");
-        Err(format!("API 错误 ({}): {msg}", status.as_u16()))
-    }
-}
-
-async fn exec_downloads_delete(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
-    let delete_files = args
-        .get("delete_files")
-        .and_then(Value::as_bool)
-        .unwrap_or(true);
+async fn exec_downloads_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
+    let delete_files = args.get("delete_files").and_then(Value::as_bool).unwrap_or(true);
     let payload = json!({ "delete_files": delete_files });
-    api_post(state, &format!("/downloads/{id}/delete"), payload).await
+    api_post(ctx, &format!("/downloads/{id}/delete"), payload).await
 }
 
-async fn exec_downloads_pause(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
-    api_post(state, &format!("/downloads/{id}/pause"), json!({})).await
+async fn exec_downloads_pause(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
+    api_post(ctx, &format!("/downloads/{id}/pause"), json!({})).await
 }
 
-async fn exec_downloads_resume(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
-    api_post(state, &format!("/downloads/{id}/resume"), json!({})).await
+async fn exec_downloads_resume(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
+    api_post(ctx, &format!("/downloads/{id}/resume"), json!({})).await
 }
 
-async fn exec_system_logs(state: &AppState, args: &Value) -> Result<Value, String> {
+async fn exec_system_logs(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
     let mut path = "/logs".to_string();
     let limit = args.get("limit").and_then(Value::as_u64);
     let level = args.get("level").and_then(Value::as_str);
@@ -705,30 +626,18 @@ async fn exec_system_logs(state: &AppState, args: &Value) -> Result<Value, Strin
         path.push('?');
         path.push_str(&params.join("&"));
     }
-    api_get(state, &path).await
+    api_get(ctx, &path).await
 }
 
-async fn exec_filters_list(state: &AppState) -> Result<Value, String> {
-    api_get(state, "/filters").await
+async fn exec_filters_list(ctx: &PluginContext) -> Result<Value, String> {
+    api_get(ctx, "/filters").await
 }
 
-async fn exec_filters_create(state: &AppState, args: &Value) -> Result<Value, String> {
-    let name = args
-        .get("name")
-        .and_then(Value::as_str)
-        .ok_or("缺少 name 参数")?;
-    let pattern = args
-        .get("pattern")
-        .and_then(Value::as_str)
-        .ok_or("缺少 pattern 参数")?;
-    let filter_type = args
-        .get("filter_type")
-        .and_then(Value::as_str)
-        .unwrap_or("include");
-    let enabled = args
-        .get("enabled")
-        .and_then(Value::as_bool)
-        .unwrap_or(true);
+async fn exec_filters_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let name = args.get("name").and_then(Value::as_str).ok_or("缺少 name 参数")?;
+    let pattern = args.get("pattern").and_then(Value::as_str).ok_or("缺少 pattern 参数")?;
+    let filter_type = args.get("filter_type").and_then(Value::as_str).unwrap_or("include");
+    let enabled = args.get("enabled").and_then(Value::as_bool).unwrap_or(true);
     let site_id = args.get("site_id").and_then(Value::as_u64);
 
     let mut payload = json!({
@@ -740,14 +649,11 @@ async fn exec_filters_create(state: &AppState, args: &Value) -> Result<Value, St
     if let Some(sid) = site_id {
         payload["site_id"] = json!(sid);
     }
-    api_post(state, "/filters", payload).await
+    api_post(ctx, "/filters", payload).await
 }
 
-async fn exec_filters_update(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
+async fn exec_filters_update(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
     let mut payload = json!({});
     if let Some(v) = args.get("name").and_then(Value::as_str) {
         payload["name"] = json!(v);
@@ -764,59 +670,43 @@ async fn exec_filters_update(state: &AppState, args: &Value) -> Result<Value, St
     if let Some(v) = args.get("enabled").and_then(Value::as_bool) {
         payload["enabled"] = json!(v);
     }
-    api_patch(state, &format!("/filters/{id}"), payload).await
+    api_patch(ctx, &format!("/filters/{id}"), payload).await
 }
 
-async fn exec_filters_delete(state: &AppState, args: &Value) -> Result<Value, String> {
-    let id = args
-        .get("id")
-        .and_then(Value::as_u64)
-        .ok_or("缺少 id 参数")?;
+async fn exec_filters_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
     let path = format!("/filters/{id}");
-    api_delete(state, &path).await
+    api_delete(ctx, &path).await
 }
 
-async fn exec_send_notification(state: &AppState, args: &Value) -> Result<Value, String> {
-    let title = args
-        .get("title")
-        .and_then(Value::as_str)
-        .ok_or("缺少 title 参数")?;
-    let message = args
-        .get("message")
-        .and_then(Value::as_str)
-        .ok_or("缺少 message 参数")?;
-    let level = args
-        .get("level")
-        .and_then(Value::as_str)
-        .unwrap_or("info");
-    let payload = json!({
-        "title": title,
-        "message": message,
-        "level": level
-    });
-    api_post(state, "/notifications", payload).await
+async fn exec_send_notification(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
+    let title = args.get("title").and_then(Value::as_str).ok_or("缺少 title 参数")?;
+    let message = args.get("message").and_then(Value::as_str).ok_or("缺少 message 参数")?;
+    let level = args.get("level").and_then(Value::as_str).unwrap_or("info");
+    let payload = json!({ "title": title, "message": message, "level": level });
+    api_post(ctx, "/notifications", payload).await
 }
 
-async fn call_tool(state: &AppState, name: &str, args: &Value) -> Result<Value, String> {
+async fn call_tool(ctx: &PluginContext, name: &str, args: &Value) -> Result<Value, String> {
     match name {
-        "catalog_search" => exec_catalog_search(state, args).await,
-        "subscriptions_list" => exec_subscriptions_list(state, args).await,
-        "subscriptions_create" => exec_subscriptions_create(state, args).await,
-        "subscriptions_delete" => exec_subscriptions_delete(state, args).await,
-        "downloads_list" => exec_downloads_list(state, args).await,
-        "downloads_create" => exec_downloads_create(state, args).await,
-        "downloads_delete" => exec_downloads_delete(state, args).await,
-        "downloads_pause" => exec_downloads_pause(state, args).await,
-        "downloads_resume" => exec_downloads_resume(state, args).await,
-        "sites_list" => exec_sites_list(state).await,
-        "downloader_status" => exec_downloader_status(state).await,
-        "torrents_list" => exec_torrents_list(state, args).await,
-        "system_logs" => exec_system_logs(state, args).await,
-        "filters_list" => exec_filters_list(state).await,
-        "filters_create" => exec_filters_create(state, args).await,
-        "filters_update" => exec_filters_update(state, args).await,
-        "filters_delete" => exec_filters_delete(state, args).await,
-        "send_notification" => exec_send_notification(state, args).await,
+        "catalog_search" => exec_catalog_search(ctx, args).await,
+        "subscriptions_list" => exec_subscriptions_list(ctx, args).await,
+        "subscriptions_create" => exec_subscriptions_create(ctx, args).await,
+        "subscriptions_delete" => exec_subscriptions_delete(ctx, args).await,
+        "downloads_list" => exec_downloads_list(ctx, args).await,
+        "downloads_create" => exec_downloads_create(ctx, args).await,
+        "downloads_delete" => exec_downloads_delete(ctx, args).await,
+        "downloads_pause" => exec_downloads_pause(ctx, args).await,
+        "downloads_resume" => exec_downloads_resume(ctx, args).await,
+        "sites_list" => exec_sites_list(ctx).await,
+        "downloader_status" => exec_downloader_status(ctx).await,
+        "torrents_list" => exec_torrents_list(ctx, args).await,
+        "system_logs" => exec_system_logs(ctx, args).await,
+        "filters_list" => exec_filters_list(ctx).await,
+        "filters_create" => exec_filters_create(ctx, args).await,
+        "filters_update" => exec_filters_update(ctx, args).await,
+        "filters_delete" => exec_filters_delete(ctx, args).await,
+        "send_notification" => exec_send_notification(ctx, args).await,
         _ => Err(format!("未知工具: {name}")),
     }
 }
@@ -825,10 +715,7 @@ fn tool_result_to_mcp(api_result: Result<Value, String>) -> CallToolResult {
     match api_result {
         Ok(value) => {
             let text = serde_json::to_string_pretty(&value).unwrap_or_else(|e| e.to_string());
-            CallToolResult {
-                content: vec![ToolContent { content_type: "text", text }],
-                is_error: None,
-            }
+            CallToolResult { content: vec![ToolContent { content_type: "text", text }], is_error: None }
         }
         Err(err) => CallToolResult {
             content: vec![ToolContent { content_type: "text", text: err }],
@@ -839,7 +726,7 @@ fn tool_result_to_mcp(api_result: Result<Value, String>) -> CallToolResult {
 
 // ── JSON-RPC Dispatch ───────────────────────────────────────────
 
-async fn dispatch_jsonrpc(state: &AppState, request: JsonRpcRequest) -> JsonRpcResponse {
+async fn dispatch_jsonrpc(ctx: &PluginContext, request: JsonRpcRequest) -> JsonRpcResponse {
     let id = request.id.clone();
     match request.method.as_str() {
         "initialize" => {
@@ -849,13 +736,8 @@ async fn dispatch_jsonrpc(state: &AppState, request: JsonRpcRequest) -> JsonRpcR
             };
             let result = InitializeResult {
                 protocol_version: "2024-11-05",
-                capabilities: json!({
-                    "tools": {}
-                }),
-                server_info: ServerInfo {
-                    name: "mediary-mcp-server",
-                    version: "0.1.0",
-                },
+                capabilities: json!({ "tools": {} }),
+                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.1.0" },
                 instructions: "通过 MCP 连接到 Mediary 媒体管理中心。可用工具包括搜索目录、管理订阅、查看下载等。",
             };
             JsonRpcResponse::ok(id, serde_json::to_value(result).unwrap_or_default())
@@ -875,7 +757,7 @@ async fn dispatch_jsonrpc(state: &AppState, request: JsonRpcRequest) -> JsonRpcR
                 Ok(p) => p,
                 Err(e) => return JsonRpcResponse::err(id, -32602, format!("参数解析失败: {e}")),
             };
-            let raw = call_tool(state, &params.name, &params.arguments).await;
+            let raw = call_tool(ctx, &params.name, &params.arguments).await;
             let mcp_result = tool_result_to_mcp(raw);
             JsonRpcResponse::ok(id, serde_json::to_value(mcp_result).unwrap_or_default())
         }
@@ -884,209 +766,84 @@ async fn dispatch_jsonrpc(state: &AppState, request: JsonRpcRequest) -> JsonRpcR
     }
 }
 
-// ── HTTP / SSE Routes ───────────────────────────────────────────
-
-async fn handle_post(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    body: String,
-) -> Result<(StatusCode, HeaderMap, Json<Value>), StatusCode> {
-    let request: JsonRpcRequest = match serde_json::from_str(&body) {
-        Ok(r) => r,
-        Err(e) => {
-            let resp = JsonRpcResponse::err(Value::Null, -32700, format!("解析请求失败: {e}"));
-            let mut h = HeaderMap::new();
-            h.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
-            return Ok((StatusCode::OK, h, Json(serde_json::to_value(resp).unwrap_or_default())));
-        }
-    };
-
-    let id = request.id.clone();
-
-    if id == Value::Null || id == json!(null) {
-        dispatch_jsonrpc(&state, request).await;
-        let mut resp_headers = HeaderMap::new();
-        if let Some(session_id) = headers.get("mcp-session-id").and_then(|v| v.to_str().ok()) {
-            resp_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
-        }
-        return Ok((StatusCode::ACCEPTED, resp_headers, Json(json!({}))));
-    }
-
-    let response = dispatch_jsonrpc(&state, request).await;
-    let mut resp_headers = HeaderMap::new();
-
-    if let Some(session_id) = headers.get("mcp-session-id").and_then(|v| v.to_str().ok()) {
-        resp_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
-    } else {
-        let counter = state.request_counter.fetch_add(1, Ordering::SeqCst);
-        let session_id = format!("mcp-session-{counter}");
-        resp_headers.insert("Mcp-Session-Id", session_id.parse().unwrap());
-    }
-
-    Ok((StatusCode::OK, resp_headers, Json(serde_json::to_value(response).unwrap_or_default())))
-}
-
-async fn handle_get(
-    State(state): State<Arc<AppState>>,
-    Query(_params): Query<HashMap<String, String>>,
-    headers: HeaderMap,
-) -> Result<Sse<impl tokio_stream::Stream<Item = Result<Event, std::convert::Infallible>>>, StatusCode> {
-    let accept = headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-    if !accept.contains("text/event-stream") {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let rx = state.sse_tx.subscribe();
-    let stream = BroadcastStream::new(rx).filter_map(|msg| {
-        match msg {
-            Ok(text) => Some(Ok(Event::default().data(text))),
-            Err(_) => None,
-        }
-    });
-
-    Ok(Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(std::time::Duration::from_secs(30))
-            .text("ping"),
-    ))
-}
-
 // ── Main Entry Point ────────────────────────────────────────────
 
-async fn run_mediary_stdin(_state: Arc<AppState>) {
-    let mut input = String::new();
-    loop {
-        input.clear();
-        match std::io::stdin().read_line(&mut input) {
-            Ok(0) => {
-                eprintln!("stdin 已关闭");
-                break;
-            }
-            Ok(_) => {
-                let action = std::env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
-                let trigger = std::env::var("MEDIARY_PLUGIN_TRIGGER").unwrap_or_default();
-                let _payload: Value = serde_json::from_str(&input).unwrap_or(Value::Null);
-
-                match action.as_str() {
-                    "status" => {
-                        let result = json!({
-                            "notice": "MCP 服务运行中，通过 Mediary 代理访问",
-                            "items": [
-                                {
-                                    "title": "MCP 端点（经 Mediary 代理）",
-                                    "subtitle": "无需额外开放端口，与 Mediary 共用同一地址",
-                                    "metadata": [
-                                        {"label": "路径", "value": "/mcp"}
-                                    ],
-                                    "actions": [
-                                        {
-                                            "type": "copy",
-                                            "label": "复制路径",
-                                            "text": "/mcp"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "title": "OpenClaw 连接",
-                                    "subtitle": "使用 Streamable HTTP 传输，URL 为 Mediary 地址 + 上方路径",
-                                    "metadata": [
-                                        {"label": "传输", "value": "Streamable HTTP"},
-                                        {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
-                                    ],
-                                    "actions": [
-                                        {
-                                            "type": "copy",
-                                            "label": "复制端点",
-                                            "text": "http://192.168.10.150:8118/mcp"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "title": "Hemes 连接",
-                                    "subtitle": "添加 MCP 服务器，类型选择 Streamable HTTP",
-                                    "metadata": [
-                                        {"label": "类型", "value": "streamableHttp"},
-                                        {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
-                                    ],
-                                    "actions": [
-                                        {
-                                            "type": "copy",
-                                            "label": "复制端点",
-                                            "text": "http://192.168.10.150:8118/mcp"
-                                        }
-                                    ]
-                                }
-                            ],
-                            "report": {
-                                "tools": 18,
-                                "transport": "Mediary 代理 (Streamable HTTP)",
-                                "trigger": trigger
-                            }
-                        });
-                        println!("{result}");
-                    }
-                    _ => {
-                        let result = json!({
-                            "notice": format!("MCP 服务器运行中 (action={action})"),
-                        });
-                        println!("{result}");
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("读取 stdin 失败: {e}");
-                break;
-            }
-        }
-    }
-}
-
 async fn run() -> Result<(), String> {
-    let api_url = std::env::var("MEDIARY_PLUGIN_API_URL")
+    let api_url = env::var("MEDIARY_PLUGIN_API_URL")
         .map_err(|_| "缺少 MEDIARY_PLUGIN_API_URL 环境变量".to_string())?;
-    let api_token = std::env::var("MEDIARY_PLUGIN_TOKEN")
+    let api_token = env::var("MEDIARY_PLUGIN_TOKEN")
         .map_err(|_| "缺少 MEDIARY_PLUGIN_TOKEN 环境变量".to_string())?;
+    let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
+    let trigger = env::var("MEDIARY_PLUGIN_TRIGGER").unwrap_or_default();
 
-    let default_port: u16 = 8100;
-
-    let (sse_tx, _) = broadcast::channel::<String>(64);
-
-    let state = Arc::new(AppState {
-        api_url,
+    let ctx = PluginContext {
+        api_url: api_url.trim_end_matches('/').to_string(),
         api_token,
         http_client: reqwest::Client::new(),
-        sse_tx,
-        request_counter: AtomicU64::new(0),
-    });
+    };
 
-    let app = Router::new()
-        .route("/mcp", post(handle_post).get(handle_get))
-        .with_state(state.clone());
-
-    let addr = format!("127.0.0.1:{default_port}");
-    let listener = TcpListener::bind(&addr)
-        .await
-        .map_err(|e| format!("绑定地址失败 ({addr}): {e}"))?;
-
-    eprintln!("MCP 服务内部端点: http://{addr}/mcp（通过 Mediary 代理访问）");
-
-    let server = axum::serve(listener, app);
-
-    let state_for_stdin = state.clone();
-    let stdin_handle = tokio::spawn(async move {
-        run_mediary_stdin(state_for_stdin).await;
-    });
-
-    tokio::select! {
-        result = server => {
-            if let Err(e) = result {
-                return Err(format!("HTTP 服务器错误: {e}"));
-            }
+    match action.as_str() {
+        "status" => {
+            let result = json!({
+                "notice": "MCP 服务运行中，通过 Mediary /mcp 端点访问",
+                "items": [
+                    {
+                        "title": "MCP 端点（经 Mediary 代理）",
+                        "subtitle": "与 Mediary 共用同一地址，无需额外开放端口",
+                        "metadata": [
+                            {"label": "路径", "value": "/mcp"}
+                        ],
+                        "actions": [
+                            { "type": "copy", "label": "复制路径", "text": "/mcp" }
+                        ]
+                    },
+                    {
+                        "title": "OpenClaw 连接",
+                        "subtitle": "使用 Streamable HTTP 传输，URL 为 Mediary 地址 + /mcp",
+                        "metadata": [
+                            {"label": "传输", "value": "Streamable HTTP"},
+                            {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
+                        ],
+                        "actions": [
+                            { "type": "copy", "label": "复制端点", "text": "http://192.168.10.150:8118/mcp" }
+                        ]
+                    },
+                    {
+                        "title": "Hemes 连接",
+                        "subtitle": "添加 MCP 服务器，类型选择 Streamable HTTP",
+                        "metadata": [
+                            {"label": "类型", "value": "streamableHttp"},
+                            {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
+                        ],
+                        "actions": [
+                            { "type": "copy", "label": "复制端点", "text": "http://192.168.10.150:8118/mcp" }
+                        ]
+                    }
+                ],
+                "report": {
+                    "tools": 18,
+                    "transport": "Mediary 代理 (/mcp)",
+                    "trigger": trigger
+                }
+            });
+            println!("{result}");
         }
-        _ = stdin_handle => {}
+        _ => {
+            let input = std::io::read_to_string(std::io::stdin())
+                .map_err(|e| format!("读取请求失败: {e}"))?;
+            let request: JsonRpcRequest = serde_json::from_str(&input)
+                .map_err(|e| format!("JSON-RPC 解析失败: {e}"))?;
+
+            if request.id == Value::Null {
+                dispatch_jsonrpc(&ctx, request).await;
+                return Ok(());
+            }
+
+            let response = dispatch_jsonrpc(&ctx, request).await;
+            let output = serde_json::to_string(&response)
+                .map_err(|e| format!("序列化响应失败: {e}"))?;
+            println!("{output}");
+        }
     }
 
     Ok(())

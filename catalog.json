@@ -44,7 +44,7 @@
       "id": "mcp-server",
       "name": "MCP Server",
       "version": "0.1.0",
-      "description": "提供 MCP (Model Context Protocol) 服务，通过 Mediary 代理暴露端点，支持 OpenClaw、Hemes 等 AI 客户端连接并调用 Mediary 功能。",
+      "description": "提供 MCP (Model Context Protocol) 服务，通过 Mediary /mcp 端点暴露，支持 OpenClaw、Hemes 等 AI 客户端连接并调用 Mediary 功能。",
       "author": "Mediary",
       "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/main/official/mcp-server",
       "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/main/official",
