@@ -776,6 +776,13 @@ async fn run() -> Result<(), String> {
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
     let trigger = env::var("MEDIARY_PLUGIN_TRIGGER").unwrap_or_default();
 
+    let base_url = if let Some(pos) = api_url.rfind("/api") {
+        &api_url[..pos]
+    } else {
+        &api_url
+    };
+    let mcp_endpoint = format!("{base_url}/mcp");
+
     let ctx = PluginContext {
         api_url: api_url.trim_end_matches('/').to_string(),
         api_token,
@@ -788,35 +795,35 @@ async fn run() -> Result<(), String> {
                 "notice": "MCP 服务运行中，通过 Mediary /mcp 端点访问",
                 "items": [
                     {
-                        "title": "MCP 端点（经 Mediary 代理）",
+                        "title": "MCP 端点",
                         "subtitle": "与 Mediary 共用同一地址，无需额外开放端口",
                         "metadata": [
-                            {"label": "路径", "value": "/mcp"}
+                            {"label": "地址", "value": mcp_endpoint}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制路径", "text": "/mcp" }
+                            { "type": "copy", "label": "复制地址", "text": mcp_endpoint }
                         ]
                     },
                     {
-                        "title": "OpenClaw 连接",
-                        "subtitle": "使用 Streamable HTTP 传输，URL 为 Mediary 地址 + /mcp",
+                        "title": "OpenClaw 连接示例",
+                        "subtitle": "在 OpenClaw 的 MCP 设置中选择 Streamable HTTP 传输，填入端点地址",
                         "metadata": [
-                            {"label": "传输", "value": "Streamable HTTP"},
-                            {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
+                            {"label": "传输方式", "value": "Streamable HTTP"},
+                            {"label": "端点", "value": mcp_endpoint}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制端点", "text": "http://192.168.10.150:8118/mcp" }
+                            { "type": "copy", "label": "复制端点", "text": mcp_endpoint }
                         ]
                     },
                     {
-                        "title": "Hemes 连接",
-                        "subtitle": "添加 MCP 服务器，类型选择 Streamable HTTP",
+                        "title": "Hemes 连接示例",
+                        "subtitle": "在 Hemes 设置中添加 MCP 服务器，类型选择 Streamable HTTP，填入端点地址",
                         "metadata": [
                             {"label": "类型", "value": "streamableHttp"},
-                            {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
+                            {"label": "端点", "value": mcp_endpoint}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制端点", "text": "http://192.168.10.150:8118/mcp" }
+                            { "type": "copy", "label": "复制端点", "text": mcp_endpoint }
                         ]
                     }
                 ],
