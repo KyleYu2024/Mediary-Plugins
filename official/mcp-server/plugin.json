@@ -3,7 +3,7 @@
   "id": "mcp-server",
   "name": "MCP Server",
   "version": "0.2.0",
-  "description": "为 Mediary 提供 MCP (Model Context Protocol) 服务，通过 /mcp 端点接收 OpenClaw、Hermes 等 AI 客户端请求，实现 AI 对话中直接调用 Mediary 全部功能。",
+  "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 端点调用 Mediary 全部功能。",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -35,8 +35,15 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后 MCP 服务通过 /mcp 端点（与 Mediary 共用端口）接收 AI 客户端请求。外部调用需携带 Mediary API Token 鉴权，首次启用需在下方权限设置中手动勾选所需权限。",
+            "help": "启用后对外开放 /mcp 端点（与 Mediary 共用端口）。需在下方权限设置中手动勾选所需权限，并在上方填写 Mediary 访问地址。",
             "default": false
+          },
+          {
+            "key": "public_url",
+            "type": "text",
+            "label": "Mediary 访问地址",
+            "placeholder": "http://192.168.x.x:8118",
+            "help": "填写你浏览器中访问 Mediary 的完整地址（含端口），用于自动生成 MCP 连接地址。例如 http://192.168.10.150:8118"
           }
         ]
       }
@@ -63,7 +70,7 @@
       "text": "MCP 服务运行中 — 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具",
       "icon": "server"
     },
-    "empty_result_text": "MCP 服务未运行。请在设置中启用该插件。",
+    "empty_result_text": "暂未获取到状态。请确认插件已启用并配置了 Mediary 访问地址。",
     "error_message": "MCP 服务状态查询失败。"
   }
 }

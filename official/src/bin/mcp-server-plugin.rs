@@ -776,6 +776,31 @@ async fn run() -> Result<(), String> {
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
     let trigger = env::var("MEDIARY_PLUGIN_TRIGGER").unwrap_or_default();
 
+    let settings_json = env::var("MEDIARY_PLUGIN_SETTINGS_JSON").unwrap_or_default();
+    let settings: Value = serde_json::from_str(&settings_json).unwrap_or(Value::Null);
+    let public_url = settings
+        .get("public_url")
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty());
+
+    let base_url = public_url
+        .map(|s| s.trim_end_matches('/'))
+        .unwrap_or_else(|| {
+            let api = &api_url;
+            if let Some(pos) = api.rfind("/api") {
+                &api[..pos]
+            } else {
+                api
+            }
+        });
+
+    let openclaw_template = format!(
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{base_url}/mcp\",\"headers\":{{\"Authorization\":\"Bearer <API Token>\"}}}}}}}}"
+    );
+    let hermes_template = format!(
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{base_url}/mcp\",\"headers\":{{\"Authorization\":\"Bearer <API Token>\"}}}}}}}}"
+    );
+
     let ctx = PluginContext {
         api_url: api_url.trim_end_matches('/').to_string(),
         api_token,
@@ -785,30 +810,24 @@ async fn run() -> Result<(), String> {
     match action.as_str() {
         "status" => {
             let result = json!({
-                "notice": "MCP 服务已启动，端点路径: /mcp",
+                "notice": "MCP 服务已启动，端点: /mcp",
                 "items": [
                     {
                         "title": "鉴权说明",
-                        "subtitle": "MCP 端点 /mcp 需要 Mediary API Token 鉴权，AI 客户端请求时需在 Header 中添加 Authorization: Bearer <你的API Token>。Token 可在 Mediary 设置 → API Token 中获取。",
+                        "subtitle": "外部调用 /mcp 需携带 Mediary API Token\nHeader: Authorization: Bearer <你的API Token>\nToken 在 Mediary 设置 → API Token 中获取",
                         "metadata": [],
                         "actions": []
                     },
                     {
                         "title": "OpenClaw 连接",
-                        "subtitle": "传输类型: Streamable HTTP\n端点地址: http://<你的Mediary地址>/mcp\n\n配置示例:\n{\n  \"mcpServers\": {\n    \"mediary\": {\n      \"type\": \"http\",\n      \"url\": \"http://<你的Mediary地址>/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer <你的API Token>\"\n      }\n    }\n  }\n}",
-                        "metadata": [
-                            {"label": "传输", "value": "Streamable HTTP"},
-                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
-                        ],
+                        "subtitle": format!("在 MCP 设置中添加服务器，选择 Streamable HTTP 传输\n\n完整配置（直接复制使用）:\n\n{openclaw_template}"),
+                        "metadata": [],
                         "actions": []
                     },
                     {
                         "title": "Hermes 连接",
-                        "subtitle": "传输类型: streamableHttp\n端点地址: http://<你的Mediary地址>/mcp\n\n配置示例:\n{\n  \"mcpServers\": {\n    \"mediary\": {\n      \"type\": \"streamableHttp\",\n      \"url\": \"http://<你的Mediary地址>/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer <你的API Token>\"\n      }\n    }\n  }\n}",
-                        "metadata": [
-                            {"label": "传输", "value": "streamableHttp"},
-                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
-                        ],
+                        "subtitle": format!("在 MCP 设置中添加服务器，类型选择 streamableHttp\n\n完整配置（直接复制使用）:\n\n{hermes_template}"),
+                        "metadata": [],
                         "actions": []
                     }
                 ],
