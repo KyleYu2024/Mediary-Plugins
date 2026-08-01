@@ -781,13 +781,12 @@ async fn run() -> Result<(), String> {
     } else {
         &api_url
     };
-    let mcp_endpoint = format!("{base_url}/mcp");
 
     let openclaw_template = format!(
-        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{base_url}/mcp\"}}}}}}"
     );
     let hemes_template = format!(
-        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{base_url}/mcp\"}}}}}}"
     );
 
     let ctx = PluginContext {
@@ -799,13 +798,13 @@ async fn run() -> Result<(), String> {
     match action.as_str() {
         "status" => {
             let result = json!({
-                "notice": format!("MCP 服务已启动，端点: {mcp_endpoint}"),
+                "notice": "MCP 服务已启动，端点路径: /mcp",
                 "items": [
                     {
                         "title": "OpenClaw 连接方法",
-                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点地址后保存即可",
+                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
                         "metadata": [
-                            {"label": "端点", "value": mcp_endpoint}
+                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
                         "actions": [
                             { "type": "copy", "label": "复制 JSON 配置", "text": openclaw_template }
@@ -813,9 +812,9 @@ async fn run() -> Result<(), String> {
                     },
                     {
                         "title": "Hemes 连接方法",
-                        "subtitle": "1. 打开 Hemes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点地址后保存即可",
+                        "subtitle": "1. 打开 Hemes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
                         "metadata": [
-                            {"label": "端点", "value": mcp_endpoint}
+                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
                         "actions": [
                             { "type": "copy", "label": "复制 JSON 配置", "text": hemes_template }
@@ -823,7 +822,6 @@ async fn run() -> Result<(), String> {
                     }
                 ],
                 "report": {
-                    "endpoint": mcp_endpoint,
                     "tools": 18,
                     "trigger": trigger
                 }
