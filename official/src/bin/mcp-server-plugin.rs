@@ -737,7 +737,7 @@ async fn dispatch_jsonrpc(ctx: &PluginContext, request: JsonRpcRequest) -> JsonR
             let result = InitializeResult {
                 protocol_version: "2024-11-05",
                 capabilities: json!({ "tools": {} }),
-                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.1.1" },
+                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.1.2" },
                 instructions: "通过 MCP 连接到 Mediary 媒体管理中心。可用工具包括搜索目录、管理订阅、查看下载等。",
             };
             JsonRpcResponse::ok(id, serde_json::to_value(result).unwrap_or_default())
@@ -791,45 +791,41 @@ async fn run() -> Result<(), String> {
 
     match action.as_str() {
         "status" => {
+            let openclaw_config = format!(
+                "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+            );
+            let hemes_config = format!(
+                "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+            );
             let result = json!({
                 "notice": "MCP 服务运行中，通过 Mediary /mcp 端点访问",
                 "items": [
                     {
-                        "title": "MCP 端点",
-                        "subtitle": "与 Mediary 共用同一地址，无需额外开放端口",
+                        "title": "OpenClaw 连接",
+                        "subtitle": "复制下方 JSON 配置，粘贴到 OpenClaw 的 MCP 设置中即可连接",
                         "metadata": [
-                            {"label": "地址", "value": mcp_endpoint}
+                            {"label": "端点", "value": mcp_endpoint},
+                            {"label": "配置", "value": openclaw_config}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制地址", "text": mcp_endpoint }
+                            { "type": "copy", "label": "一键复制配置", "text": openclaw_config }
                         ]
                     },
                     {
-                        "title": "OpenClaw 连接示例",
-                        "subtitle": "在 OpenClaw 的 MCP 设置中选择 Streamable HTTP 传输，填入端点地址",
+                        "title": "Hemes 连接",
+                        "subtitle": "复制下方 JSON 配置，粘贴到 Hemes 的 MCP 设置中即可连接",
                         "metadata": [
-                            {"label": "传输方式", "value": "Streamable HTTP"},
-                            {"label": "端点", "value": mcp_endpoint}
+                            {"label": "端点", "value": mcp_endpoint},
+                            {"label": "配置", "value": hemes_config}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制端点", "text": mcp_endpoint }
-                        ]
-                    },
-                    {
-                        "title": "Hemes 连接示例",
-                        "subtitle": "在 Hemes 设置中添加 MCP 服务器，类型选择 Streamable HTTP，填入端点地址",
-                        "metadata": [
-                            {"label": "类型", "value": "streamableHttp"},
-                            {"label": "端点", "value": mcp_endpoint}
-                        ],
-                        "actions": [
-                            { "type": "copy", "label": "复制端点", "text": mcp_endpoint }
+                            { "type": "copy", "label": "一键复制配置", "text": hemes_config }
                         ]
                     }
                 ],
                 "report": {
+                    "endpoint": mcp_endpoint,
                     "tools": 18,
-                    "transport": "Mediary 代理 (/mcp)",
                     "trigger": trigger
                 }
             });
