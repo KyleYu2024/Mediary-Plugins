@@ -3,7 +3,7 @@
   "id": "mcp-server",
   "name": "MCP Server",
   "version": "0.2.0",
-  "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 端点调用 Mediary 全部功能。",
+  "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 使用目录、订阅、下载和通知工具。",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -21,9 +21,7 @@
     "filters:read",
     "filters:write",
     "logs:read",
-    "notifications:send",
-    "integrations:read",
-    "integrations:run"
+    "notifications:send"
   ],
   "auto_grant_scopes": false,
   "settings_schema": {

@@ -3,6 +3,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::env;
 
+const ROUTE_CATALOG_SEARCH: &str = "/search/tmdb";
+const ROUTE_SUBSCRIPTIONS: &str = "/subscriptions";
+const ROUTE_DOWNLOADS: &str = "/downloads";
+const ROUTE_SITES: &str = "/sites";
+const ROUTE_DOWNLOADER: &str = "/plugin/downloader";
+const ROUTE_TORRENTS: &str = "/plugin/torrents";
+const ROUTE_ADD_DOWNLOAD: &str = "/plugin/downloads";
+const ROUTE_CONTROL_DOWNLOADS: &str = "/plugin/downloader/torrents/control";
+const ROUTE_LOGS: &str = "/logs";
+const ROUTE_FILTER_RULES: &str = "/filter/rules";
+const ROUTE_NOTIFICATIONS: &str = "/plugin/notifications";
+
 // ── JSON-RPC 2.0 Types ──────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
@@ -36,14 +48,23 @@ struct JsonRpcErrorBody {
 
 impl JsonRpcResponse {
     fn ok(id: Value, result: Value) -> Self {
-        Self { jsonrpc: "2.0", id, result: Some(result), error: None }
+        Self {
+            jsonrpc: "2.0",
+            id,
+            result: Some(result),
+            error: None,
+        }
     }
     fn err(id: Value, code: i64, message: impl Into<String>) -> Self {
         Self {
             jsonrpc: "2.0",
             id,
             result: None,
-            error: Some(JsonRpcErrorBody { code, message: message.into(), data: None }),
+            error: Some(JsonRpcErrorBody {
+                code,
+                message: message.into(),
+                data: None,
+            }),
         }
     }
 }
@@ -126,6 +147,12 @@ fn define_tools() -> Vec<ToolDefinition> {
                         "type": "string",
                         "description": "搜索关键词"
                     },
+                    "media_type": {
+                        "type": "string",
+                        "description": "媒体类型：multi、movie 或 tv",
+                        "enum": ["multi", "movie", "tv"],
+                        "default": "multi"
+                    },
                     "limit": {
                         "type": "integer",
                         "description": "返回结果数量上限，默认 10",
@@ -141,11 +168,18 @@ fn define_tools() -> Vec<ToolDefinition> {
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "status": {
+                    "tmdb_id": {
+                        "type": "integer",
+                        "description": "按 TMDB ID 精确筛选"
+                    },
+                    "media_type": {
                         "type": "string",
-                        "description": "按状态筛选：all / active / completed / archived",
-                        "enum": ["all", "active", "completed", "archived"],
-                        "default": "all"
+                        "description": "按媒体类型筛选：movie 或 tv",
+                        "enum": ["movie", "tv"]
+                    },
+                    "season": {
+                        "type": "integer",
+                        "description": "按季号精确筛选"
                     },
                     "limit": {
                         "type": "integer",
@@ -215,14 +249,18 @@ fn define_tools() -> Vec<ToolDefinition> {
                     },
                     "tmdb_id": {
                         "type": "integer",
-                        "description": "TMDB 媒体 ID（选填）"
+                        "description": "TMDB 媒体 ID"
                     },
                     "year": {
                         "type": "integer",
                         "description": "发行年份（选填）"
+                    },
+                    "season": {
+                        "type": "integer",
+                        "description": "电视剧季号；media_type 为 tv 时必填"
                     }
                 },
-                "required": ["title"]
+                "required": ["title", "tmdb_id"]
             }),
         },
         ToolDefinition {
@@ -275,9 +313,9 @@ fn define_tools() -> Vec<ToolDefinition> {
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "要删除的下载任务 ID"
+                    "hash": {
+                        "type": "string",
+                        "description": "要删除的下载任务 torrent hash"
                     },
                     "delete_files": {
                         "type": "boolean",
@@ -285,7 +323,7 @@ fn define_tools() -> Vec<ToolDefinition> {
                         "default": true
                     }
                 },
-                "required": ["id"]
+                "required": ["hash"]
             }),
         },
         ToolDefinition {
@@ -294,12 +332,12 @@ fn define_tools() -> Vec<ToolDefinition> {
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "要暂停的下载任务 ID"
+                    "hash": {
+                        "type": "string",
+                        "description": "要暂停的下载任务 torrent hash"
                     }
                 },
-                "required": ["id"]
+                "required": ["hash"]
             }),
         },
         ToolDefinition {
@@ -308,12 +346,12 @@ fn define_tools() -> Vec<ToolDefinition> {
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "要恢复的下载任务 ID"
+                    "hash": {
+                        "type": "string",
+                        "description": "要恢复的下载任务 torrent hash"
                     }
                 },
-                "required": ["id"]
+                "required": ["hash"]
             }),
         },
         ToolDefinition {
@@ -327,10 +365,11 @@ fn define_tools() -> Vec<ToolDefinition> {
                         "description": "返回日志条数上限，默认 50",
                         "default": 50
                     },
-                    "level": {
+                    "scope": {
                         "type": "string",
-                        "description": "按日志级别筛选：info / warning / error / debug",
-                        "enum": ["info", "warning", "error", "debug"]
+                        "description": "日志范围",
+                        "enum": ["general", "cloudhub_broadcast", "pt_scheduled_fetch", "plugin", "all"],
+                        "default": "all"
                     }
                 }
             }),
@@ -345,67 +384,67 @@ fn define_tools() -> Vec<ToolDefinition> {
         },
         ToolDefinition {
             name: "filters_create".into(),
-            description: "创建新的过滤规则。可设置名称、匹配模式、关联站点等。".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "过滤规则名称"
-                    },
-                    "pattern": {
-                        "type": "string",
-                        "description": "匹配模式（支持正则表达式）"
-                    },
-                    "filter_type": {
-                        "type": "string",
-                        "description": "过滤类型：include（包含）或 exclude（排除）",
-                        "enum": ["include", "exclude"],
-                        "default": "include"
-                    },
-                    "site_id": {
-                        "type": "integer",
-                        "description": "关联站点 ID，不填则全局生效"
-                    },
-                    "enabled": {
-                        "type": "boolean",
-                        "description": "是否启用，默认 true",
-                        "default": true
-                    }
-                },
-                "required": ["name", "pattern"]
-            }),
-        },
-        ToolDefinition {
-            name: "filters_update".into(),
-            description: "更新已有的过滤规则，可修改名称、模式、类型、站点、启用状态等。".into(),
+            description: "创建新的自定义过滤规则。".into(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
                     "id": {
-                        "type": "integer",
+                        "type": "string",
+                        "description": "唯一规则 ID"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "过滤规则名称"
+                    },
+                    "include": {
+                        "type": "string",
+                        "description": "必须包含的关键词表达式"
+                    },
+                    "exclude": {
+                        "type": "string",
+                        "description": "必须排除的关键词表达式"
+                    },
+                    "size_range": {
+                        "type": "string",
+                        "description": "体积范围表达式"
+                    },
+                    "seeders": {
+                        "type": "string",
+                        "description": "做种人数表达式"
+                    }
+                },
+                "required": ["id", "name"]
+            }),
+        },
+        ToolDefinition {
+            name: "filters_update".into(),
+            description: "按规则 ID 更新已有的自定义过滤规则。".into(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
                         "description": "过滤规则 ID"
                     },
                     "name": {
                         "type": "string",
                         "description": "新的规则名称"
                     },
-                    "pattern": {
+                    "include": {
                         "type": "string",
-                        "description": "新的匹配模式"
+                        "description": "新的包含表达式"
                     },
-                    "filter_type": {
+                    "exclude": {
                         "type": "string",
-                        "description": "过滤类型",
-                        "enum": ["include", "exclude"]
+                        "description": "新的排除表达式"
                     },
-                    "site_id": {
-                        "type": "integer",
-                        "description": "关联站点 ID"
+                    "size_range": {
+                        "type": "string",
+                        "description": "新的体积范围表达式"
                     },
-                    "enabled": {
-                        "type": "boolean",
-                        "description": "是否启用"
+                    "seeders": {
+                        "type": "string",
+                        "description": "新的做种人数表达式"
                     }
                 },
                 "required": ["id"]
@@ -418,7 +457,7 @@ fn define_tools() -> Vec<ToolDefinition> {
                 "type": "object",
                 "properties": {
                     "id": {
-                        "type": "integer",
+                        "type": "string",
                         "description": "要删除的过滤规则 ID"
                     }
                 },
@@ -438,12 +477,6 @@ fn define_tools() -> Vec<ToolDefinition> {
                     "message": {
                         "type": "string",
                         "description": "通知正文内容"
-                    },
-                    "level": {
-                        "type": "string",
-                        "description": "通知级别",
-                        "enum": ["info", "success", "warning", "error"],
-                        "default": "info"
                     }
                 },
                 "required": ["title", "message"]
@@ -464,7 +497,24 @@ async fn api_get(ctx: &PluginContext, path: &str) -> Result<Value, String> {
     let url = format!("{}{}", ctx.api_url, path);
     let resp = ctx
         .http_client
-        .get(&url)
+        .get(url)
+        .bearer_auth(&ctx.api_token)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP 请求失败: {e}"))?;
+    parse_response(resp).await
+}
+
+async fn api_get_query(
+    ctx: &PluginContext,
+    path: &str,
+    query: &[(&str, String)],
+) -> Result<Value, String> {
+    let url = format!("{}{}", ctx.api_url, path);
+    let resp = ctx
+        .http_client
+        .get(url)
+        .query(query)
         .bearer_auth(&ctx.api_token)
         .send()
         .await
@@ -476,7 +526,7 @@ async fn api_post(ctx: &PluginContext, path: &str, payload: Value) -> Result<Val
     let url = format!("{}{}", ctx.api_url, path);
     let resp = ctx
         .http_client
-        .post(&url)
+        .post(url)
         .bearer_auth(&ctx.api_token)
         .json(&payload)
         .send()
@@ -489,21 +539,8 @@ async fn api_delete(ctx: &PluginContext, path: &str) -> Result<Value, String> {
     let url = format!("{}{}", ctx.api_url, path);
     let resp = ctx
         .http_client
-        .delete(&url)
+        .delete(url)
         .bearer_auth(&ctx.api_token)
-        .send()
-        .await
-        .map_err(|e| format!("HTTP 请求失败: {e}"))?;
-    parse_response(resp).await
-}
-
-async fn api_patch(ctx: &PluginContext, path: &str, payload: Value) -> Result<Value, String> {
-    let url = format!("{}{}", ctx.api_url, path);
-    let resp = ctx
-        .http_client
-        .patch(&url)
-        .bearer_auth(&ctx.api_token)
-        .json(&payload)
         .send()
         .await
         .map_err(|e| format!("HTTP 请求失败: {e}"))?;
@@ -512,11 +549,23 @@ async fn api_patch(ctx: &PluginContext, path: &str, payload: Value) -> Result<Va
 
 async fn parse_response(resp: reqwest::Response) -> Result<Value, String> {
     let status = resp.status();
-    let body: Value = resp.json().await.map_err(|e| format!("解析响应失败: {e}"))?;
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| format!("读取响应失败: {e}"))?;
+    let body = if text.trim().is_empty() {
+        json!({})
+    } else {
+        serde_json::from_str(&text).map_err(|e| format!("解析响应失败: {e}"))?
+    };
     if status.is_success() {
         Ok(body)
     } else {
-        let msg = body.get("message").and_then(Value::as_str).unwrap_or("未知错误");
+        let msg = body
+            .get("error")
+            .or_else(|| body.get("message"))
+            .and_then(Value::as_str)
+            .unwrap_or("未知错误");
         Err(format!("API 错误 ({}): {msg}", status.as_u16()))
     }
 }
@@ -524,167 +573,291 @@ async fn parse_response(resp: reqwest::Response) -> Result<Value, String> {
 // ── Tool Executors ──────────────────────────────────────────────
 
 async fn exec_catalog_search(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let query = args.get("query").and_then(Value::as_str).unwrap_or("");
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(10);
-    let path = format!("/catalog/search?q={query}&limit={limit}");
-    api_get(ctx, &path).await
+    let query = required_string(args, "query")?;
+    let media_type = args
+        .get("media_type")
+        .and_then(Value::as_str)
+        .unwrap_or("multi");
+    let limit = bounded_limit(args, 10, 100);
+    let params = [
+        ("query", query.to_string()),
+        ("media_type", media_type.to_string()),
+    ];
+    let result = api_get_query(ctx, ROUTE_CATALOG_SEARCH, &params).await?;
+    truncate_array(result, limit)
 }
 
 async fn exec_subscriptions_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let status = args.get("status").and_then(Value::as_str).unwrap_or("all");
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
-    let path = format!("/subscriptions?status={status}&limit={limit}");
-    api_get(ctx, &path).await
+    let mut params = vec![("limit", bounded_limit(args, 20, 1_000).to_string())];
+    if let Some(tmdb_id) = args.get("tmdb_id").and_then(Value::as_u64) {
+        params.push(("tmdb_id", tmdb_id.to_string()));
+    }
+    if let Some(media_type) = args.get("media_type").and_then(Value::as_str) {
+        params.push(("media_type", media_type.to_string()));
+    }
+    if let Some(season) = args.get("season").and_then(Value::as_u64) {
+        params.push(("season", season.to_string()));
+    }
+    api_get_query(ctx, ROUTE_SUBSCRIPTIONS, &params).await
 }
 
 async fn exec_downloads_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
     let status = args.get("status").and_then(Value::as_str).unwrap_or("all");
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
-    let path = format!("/downloads?status={status}&limit={limit}");
-    api_get(ctx, &path).await
+    let limit = bounded_limit(args, 20, 200);
+    let result = api_get(ctx, ROUTE_DOWNLOADS).await?;
+    filter_downloads(result, status, limit)
 }
 
 async fn exec_downloads_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let url = args.get("url").and_then(Value::as_str).ok_or("缺少 url 参数")?;
+    let url = required_string(args, "url")?;
     let save_path = args.get("save_path").and_then(Value::as_str).unwrap_or("");
     let category = args.get("category").and_then(Value::as_str).unwrap_or("");
-    let mut payload = json!({ "url": url });
+    let mut payload = json!({ "torrent_url": url });
     if !save_path.is_empty() {
         payload["save_path"] = json!(save_path);
     }
     if !category.is_empty() {
         payload["category"] = json!(category);
     }
-    api_post(ctx, "/downloads", payload).await
+    api_post(ctx, ROUTE_ADD_DOWNLOAD, payload).await
 }
 
 async fn exec_sites_list(ctx: &PluginContext) -> Result<Value, String> {
-    api_get(ctx, "/sites").await
+    api_get(ctx, ROUTE_SITES).await
 }
 
 async fn exec_downloader_status(ctx: &PluginContext) -> Result<Value, String> {
-    api_get(ctx, "/downloader").await
+    api_get(ctx, ROUTE_DOWNLOADER).await
 }
 
 async fn exec_torrents_list(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20);
-    let path = format!("/torrents?limit={limit}");
-    api_get(ctx, &path).await
+    let params = [("limit", bounded_limit(args, 20, 200).to_string())];
+    api_get_query(ctx, ROUTE_TORRENTS, &params).await
 }
 
 async fn exec_subscriptions_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let title = args.get("title").and_then(Value::as_str).ok_or("缺少 title 参数")?;
-    let media_type = args.get("media_type").and_then(Value::as_str).unwrap_or("movie");
-    let tmdb_id = args.get("tmdb_id").and_then(Value::as_u64);
+    let title = required_string(args, "title")?;
+    let media_type = args
+        .get("media_type")
+        .and_then(Value::as_str)
+        .unwrap_or("movie");
+    if !matches!(media_type, "movie" | "tv") {
+        return Err("media_type 仅支持 movie 或 tv".to_string());
+    }
+    let tmdb_id = required_positive_u64(args, "tmdb_id")?;
     let year = args.get("year").and_then(Value::as_u64);
+    let season = args.get("season").and_then(Value::as_u64);
+    if media_type == "tv" && season.is_none() {
+        return Err("电视剧订阅缺少 season 参数".to_string());
+    }
 
-    let mut payload = json!({ "title": title, "media_type": media_type });
-    if let Some(id) = tmdb_id {
-        payload["tmdb_id"] = json!(id);
-    }
-    if let Some(y) = year {
-        payload["year"] = json!(y);
-    }
-    api_post(ctx, "/subscriptions", payload).await
+    let payload = subscription_payload(title, media_type, tmdb_id, year, season);
+    api_post(ctx, ROUTE_SUBSCRIPTIONS, payload).await
 }
 
 async fn exec_subscriptions_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    let path = format!("/subscriptions/{id}");
+    let id = required_positive_u64(args, "id")?;
+    let path = format!("{ROUTE_SUBSCRIPTIONS}/{id}");
     api_delete(ctx, &path).await
 }
 
 async fn exec_downloads_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    let delete_files = args.get("delete_files").and_then(Value::as_bool).unwrap_or(true);
-    let payload = json!({ "delete_files": delete_files });
-    api_post(ctx, &format!("/downloads/{id}/delete"), payload).await
+    let hash = required_string(args, "hash")?;
+    let delete_files = args
+        .get("delete_files")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    control_download(ctx, "delete", hash, Some(delete_files)).await
 }
 
 async fn exec_downloads_pause(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    api_post(ctx, &format!("/downloads/{id}/pause"), json!({})).await
+    let hash = required_string(args, "hash")?;
+    control_download(ctx, "pause", hash, None).await
 }
 
 async fn exec_downloads_resume(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    api_post(ctx, &format!("/downloads/{id}/resume"), json!({})).await
+    let hash = required_string(args, "hash")?;
+    control_download(ctx, "resume", hash, None).await
 }
 
 async fn exec_system_logs(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let mut path = "/logs".to_string();
-    let limit = args.get("limit").and_then(Value::as_u64);
-    let level = args.get("level").and_then(Value::as_str);
-    let mut params = vec![];
-    if let Some(l) = limit {
-        params.push(format!("limit={l}"));
-    }
-    if let Some(lv) = level {
-        params.push(format!("level={lv}"));
-    }
-    if !params.is_empty() {
-        path.push('?');
-        path.push_str(&params.join("&"));
-    }
-    api_get(ctx, &path).await
+    let scope = args.get("scope").and_then(Value::as_str).unwrap_or("all");
+    let params = [
+        ("limit", bounded_limit(args, 50, 800).to_string()),
+        ("scope", scope.to_string()),
+    ];
+    api_get_query(ctx, ROUTE_LOGS, &params).await
 }
 
 async fn exec_filters_list(ctx: &PluginContext) -> Result<Value, String> {
-    api_get(ctx, "/filters").await
+    api_get(ctx, ROUTE_FILTER_RULES).await
 }
 
 async fn exec_filters_create(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let name = args.get("name").and_then(Value::as_str).ok_or("缺少 name 参数")?;
-    let pattern = args.get("pattern").and_then(Value::as_str).ok_or("缺少 pattern 参数")?;
-    let filter_type = args.get("filter_type").and_then(Value::as_str).unwrap_or("include");
-    let enabled = args.get("enabled").and_then(Value::as_bool).unwrap_or(true);
-    let site_id = args.get("site_id").and_then(Value::as_u64);
-
-    let mut payload = json!({
-        "name": name,
-        "pattern": pattern,
-        "filter_type": filter_type,
-        "enabled": enabled
-    });
-    if let Some(sid) = site_id {
-        payload["site_id"] = json!(sid);
+    let id = required_string(args, "id")?;
+    let name = required_string(args, "name")?;
+    let mut rules = load_custom_rules(ctx).await?;
+    if rules
+        .iter()
+        .any(|rule| rule.get("id").and_then(Value::as_str) == Some(id))
+    {
+        return Err(format!("过滤规则 ID 已存在: {id}"));
     }
-    api_post(ctx, "/filters", payload).await
+    rules.push(json!({
+        "id": id,
+        "name": name,
+        "include": optional_string(args, "include")?,
+        "exclude": optional_string(args, "exclude")?,
+        "size_range": optional_string(args, "size_range")?,
+        "seeders": optional_string(args, "seeders")?,
+    }));
+    save_custom_rules(ctx, rules).await
 }
 
 async fn exec_filters_update(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    let mut payload = json!({});
-    if let Some(v) = args.get("name").and_then(Value::as_str) {
-        payload["name"] = json!(v);
+    let id = required_string(args, "id")?;
+    let mut rules = load_custom_rules(ctx).await?;
+    let rule = rules
+        .iter_mut()
+        .find(|rule| rule.get("id").and_then(Value::as_str) == Some(id))
+        .ok_or_else(|| format!("过滤规则不存在: {id}"))?;
+    for key in ["name", "include", "exclude", "size_range", "seeders"] {
+        if let Some(value) = args.get(key) {
+            if !value.is_null() && !value.is_string() {
+                return Err(format!("{key} 必须是字符串或 null"));
+            }
+            rule[key] = value.clone();
+        }
     }
-    if let Some(v) = args.get("pattern").and_then(Value::as_str) {
-        payload["pattern"] = json!(v);
-    }
-    if let Some(v) = args.get("filter_type").and_then(Value::as_str) {
-        payload["filter_type"] = json!(v);
-    }
-    if let Some(v) = args.get("site_id").and_then(Value::as_u64) {
-        payload["site_id"] = json!(v);
-    }
-    if let Some(v) = args.get("enabled").and_then(Value::as_bool) {
-        payload["enabled"] = json!(v);
-    }
-    api_patch(ctx, &format!("/filters/{id}"), payload).await
+    save_custom_rules(ctx, rules).await
 }
 
 async fn exec_filters_delete(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let id = args.get("id").and_then(Value::as_u64).ok_or("缺少 id 参数")?;
-    let path = format!("/filters/{id}");
-    api_delete(ctx, &path).await
+    let id = required_string(args, "id")?;
+    let mut rules = load_custom_rules(ctx).await?;
+    let previous_len = rules.len();
+    rules.retain(|rule| rule.get("id").and_then(Value::as_str) != Some(id));
+    if rules.len() == previous_len {
+        return Err(format!("过滤规则不存在: {id}"));
+    }
+    save_custom_rules(ctx, rules).await
 }
 
 async fn exec_send_notification(ctx: &PluginContext, args: &Value) -> Result<Value, String> {
-    let title = args.get("title").and_then(Value::as_str).ok_or("缺少 title 参数")?;
-    let message = args.get("message").and_then(Value::as_str).ok_or("缺少 message 参数")?;
-    let level = args.get("level").and_then(Value::as_str).unwrap_or("info");
-    let payload = json!({ "title": title, "message": message, "level": level });
-    api_post(ctx, "/notifications", payload).await
+    let title = required_string(args, "title")?;
+    let message = required_string(args, "message")?;
+    let payload = json!({ "title": title, "content": message });
+    api_post(ctx, ROUTE_NOTIFICATIONS, payload).await
+}
+
+fn required_string<'a>(args: &'a Value, key: &str) -> Result<&'a str, String> {
+    args.get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| format!("缺少 {key} 参数"))
+}
+
+fn required_positive_u64(args: &Value, key: &str) -> Result<u64, String> {
+    args.get(key)
+        .and_then(Value::as_u64)
+        .filter(|value| *value > 0)
+        .ok_or_else(|| format!("{key} 必须是正整数"))
+}
+
+fn optional_string(args: &Value, key: &str) -> Result<Option<String>, String> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(value)) => Ok(Some(value.trim().to_string())),
+        Some(_) => Err(format!("{key} 必须是字符串")),
+    }
+}
+
+fn bounded_limit(args: &Value, default: usize, maximum: usize) -> usize {
+    args.get("limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(default)
+        .clamp(1, maximum)
+}
+
+fn truncate_array(mut value: Value, limit: usize) -> Result<Value, String> {
+    let items = value
+        .as_array_mut()
+        .ok_or_else(|| "Mediary API 返回的不是列表".to_string())?;
+    items.truncate(limit);
+    Ok(value)
+}
+
+fn filter_downloads(mut value: Value, status: &str, limit: usize) -> Result<Value, String> {
+    let items = value
+        .as_array_mut()
+        .ok_or_else(|| "Mediary 下载接口返回的不是列表".to_string())?;
+    if status != "all" {
+        items.retain(|item| item.get("status").and_then(Value::as_str) == Some(status));
+    }
+    items.truncate(limit);
+    Ok(value)
+}
+
+fn subscription_payload(
+    title: &str,
+    media_type: &str,
+    tmdb_id: u64,
+    year: Option<u64>,
+    season: Option<u64>,
+) -> Value {
+    let mut payload = json!({
+        "name": title,
+        "media_type": media_type,
+        "tmdb_id": tmdb_id,
+    });
+    if let Some(value) = year {
+        payload["year"] = json!(value);
+    }
+    if let Some(value) = season {
+        payload["season"] = json!(value);
+    }
+    payload
+}
+
+fn downloader_control_payload(action: &str, hash: &str, delete_files: Option<bool>) -> Value {
+    let mut payload = json!({
+        "action": action,
+        "hashes": [hash],
+    });
+    if let Some(value) = delete_files {
+        payload["delete_files"] = json!(value);
+    }
+    payload
+}
+
+async fn control_download(
+    ctx: &PluginContext,
+    action: &str,
+    hash: &str,
+    delete_files: Option<bool>,
+) -> Result<Value, String> {
+    let payload = downloader_control_payload(action, hash, delete_files);
+    api_post(ctx, ROUTE_CONTROL_DOWNLOADS, payload).await
+}
+
+async fn load_custom_rules(ctx: &PluginContext) -> Result<Vec<Value>, String> {
+    let response = api_get(ctx, ROUTE_FILTER_RULES).await?;
+    response
+        .get("custom_filter_rules")
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or_else(|| "Mediary 过滤规则响应缺少 custom_filter_rules".to_string())
+}
+
+async fn save_custom_rules(ctx: &PluginContext, rules: Vec<Value>) -> Result<Value, String> {
+    api_post(
+        ctx,
+        ROUTE_FILTER_RULES,
+        json!({ "custom_filter_rules": rules }),
+    )
+    .await
 }
 
 async fn call_tool(ctx: &PluginContext, name: &str, args: &Value) -> Result<Value, String> {
@@ -715,10 +888,19 @@ fn tool_result_to_mcp(api_result: Result<Value, String>) -> CallToolResult {
     match api_result {
         Ok(value) => {
             let text = serde_json::to_string_pretty(&value).unwrap_or_else(|e| e.to_string());
-            CallToolResult { content: vec![ToolContent { content_type: "text", text }], is_error: None }
+            CallToolResult {
+                content: vec![ToolContent {
+                    content_type: "text",
+                    text,
+                }],
+                is_error: None,
+            }
         }
         Err(err) => CallToolResult {
-            content: vec![ToolContent { content_type: "text", text: err }],
+            content: vec![ToolContent {
+                content_type: "text",
+                text: err,
+            }],
             is_error: Some(true),
         },
     }
@@ -737,14 +919,15 @@ async fn dispatch_jsonrpc(ctx: &PluginContext, request: JsonRpcRequest) -> JsonR
             let result = InitializeResult {
                 protocol_version: "2024-11-05",
                 capabilities: json!({ "tools": {} }),
-                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.2.0" },
+                server_info: ServerInfo {
+                    name: "mediary-mcp-server",
+                    version: "0.2.0",
+                },
                 instructions: "通过 MCP 连接到 Mediary 媒体管理中心。可用工具包括搜索目录、管理订阅、查看下载等。",
             };
             JsonRpcResponse::ok(id, serde_json::to_value(result).unwrap_or_default())
         }
-        "notifications/initialized" => {
-            JsonRpcResponse::ok(id, json!({}))
-        }
+        "notifications/initialized" => JsonRpcResponse::ok(id, json!({})),
         "tools/list" => {
             let tools = define_tools();
             let result = json!({
@@ -841,8 +1024,8 @@ async fn run() -> Result<(), String> {
         _ => {
             let input = std::io::read_to_string(std::io::stdin())
                 .map_err(|e| format!("读取请求失败: {e}"))?;
-            let request: JsonRpcRequest = serde_json::from_str(&input)
-                .map_err(|e| format!("JSON-RPC 解析失败: {e}"))?;
+            let request: JsonRpcRequest =
+                serde_json::from_str(&input).map_err(|e| format!("JSON-RPC 解析失败: {e}"))?;
 
             if request.id == Value::Null {
                 dispatch_jsonrpc(&ctx, request).await;
@@ -850,8 +1033,8 @@ async fn run() -> Result<(), String> {
             }
 
             let response = dispatch_jsonrpc(&ctx, request).await;
-            let output = serde_json::to_string(&response)
-                .map_err(|e| format!("序列化响应失败: {e}"))?;
+            let output =
+                serde_json::to_string(&response).map_err(|e| format!("序列化响应失败: {e}"))?;
             println!("{output}");
         }
     }
@@ -864,5 +1047,90 @@ async fn main() {
     if let Err(error) = run().await {
         eprintln!("{error}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn exposes_eighteen_unique_tools_with_core_arguments() {
+        let tools = define_tools();
+        assert_eq!(tools.len(), 18);
+        assert_eq!(
+            tools
+                .iter()
+                .map(|tool| tool.name.as_str())
+                .collect::<HashSet<_>>()
+                .len(),
+            18
+        );
+
+        let create = tools
+            .iter()
+            .find(|tool| tool.name == "subscriptions_create")
+            .unwrap();
+        assert_eq!(create.input_schema["required"], json!(["title", "tmdb_id"]));
+
+        for name in ["downloads_delete", "downloads_pause", "downloads_resume"] {
+            let tool = tools.iter().find(|tool| tool.name == name).unwrap();
+            assert!(tool.input_schema["properties"].get("hash").is_some());
+            assert!(tool.input_schema["properties"].get("id").is_none());
+        }
+    }
+
+    #[test]
+    fn uses_current_core_api_routes() {
+        assert_eq!(ROUTE_CATALOG_SEARCH, "/search/tmdb");
+        assert_eq!(ROUTE_SUBSCRIPTIONS, "/subscriptions");
+        assert_eq!(ROUTE_DOWNLOADS, "/downloads");
+        assert_eq!(ROUTE_SITES, "/sites");
+        assert_eq!(ROUTE_DOWNLOADER, "/plugin/downloader");
+        assert_eq!(ROUTE_TORRENTS, "/plugin/torrents");
+        assert_eq!(ROUTE_ADD_DOWNLOAD, "/plugin/downloads");
+        assert_eq!(
+            ROUTE_CONTROL_DOWNLOADS,
+            "/plugin/downloader/torrents/control"
+        );
+        assert_eq!(ROUTE_LOGS, "/logs");
+        assert_eq!(ROUTE_FILTER_RULES, "/filter/rules");
+        assert_eq!(ROUTE_NOTIFICATIONS, "/plugin/notifications");
+    }
+
+    #[test]
+    fn builds_subscription_payload_with_core_field_names() {
+        let payload = subscription_payload("龙族", "tv", 125_988, Some(2024), Some(2));
+        assert_eq!(payload["name"], "龙族");
+        assert_eq!(payload["media_type"], "tv");
+        assert_eq!(payload["tmdb_id"], 125_988);
+        assert_eq!(payload["season"], 2);
+        assert!(payload.get("title").is_none());
+    }
+
+    #[test]
+    fn builds_downloader_control_payload_with_hashes() {
+        let payload = downloader_control_payload("delete", "abc123", Some(false));
+        assert_eq!(payload["action"], "delete");
+        assert_eq!(payload["hashes"], json!(["abc123"]));
+        assert_eq!(payload["delete_files"], false);
+    }
+
+    #[test]
+    fn filters_and_bounds_download_results_locally() {
+        let result = filter_downloads(
+            json!([
+                {"hash": "1", "status": "downloading"},
+                {"hash": "2", "status": "paused"},
+                {"hash": "3", "status": "downloading"}
+            ]),
+            "downloading",
+            1,
+        )
+        .unwrap();
+        assert_eq!(result, json!([{"hash": "1", "status": "downloading"}]));
+        assert_eq!(bounded_limit(&json!({"limit": 0}), 20, 200), 1);
+        assert_eq!(bounded_limit(&json!({"limit": 999}), 20, 200), 200);
     }
 }

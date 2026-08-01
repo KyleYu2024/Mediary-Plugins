@@ -21,7 +21,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Test plugins
-        run: cargo test --manifest-path official/Cargo.toml --locked --bin mcp-server-plugin
+        run: cargo test --manifest-path official/Cargo.toml --locked
 
   build:
     name: Build ${{ matrix.platform }}
@@ -33,6 +33,15 @@ jobs:
           - platform: linux-amd64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - platform: darwin-amd64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - platform: darwin-arm64
+            runner: macos-15
+            target: aarch64-apple-darwin
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -51,7 +60,6 @@ jobs:
           --locked
           --release
           --target ${{ matrix.target }}
-          --bin mcp-server-plugin
 
       - name: Package plugins
         shell: bash
@@ -61,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for plugin_id in mcp-server; do
+          for plugin_id in maoyan-rank pansou tmdb-trending subscribe-reminder mcp-server; do
             version=$(node -p "JSON.parse(require('fs').readFileSync('official/${plugin_id}/plugin.json')).version")
             package_dir="package-${plugin_id}"
             mkdir -p "${package_dir}"

@@ -41,41 +41,6 @@
       }
     },
     {
-      "id": "mcp-server",
-      "name": "MCP Server",
-      "version": "0.2.0",
-      "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 端点调用 Mediary 全部功能。",
-      "author": "thelinyue",
-      "homepage": "https://github.com/thelinyue/Mediary-Plugins/tree/main/official/mcp-server",
-      "source": "https://github.com/thelinyue/Mediary-Plugins/tree/main/official",
-      "license": "MIT",
-      "api_version": 1,
-      "min_mediary_version": "1.0.2",
-      "permissions": [
-        "catalog:read",
-        "subscriptions:read",
-        "subscriptions:write",
-        "downloads:read",
-        "downloads:create",
-        "downloads:write",
-        "torrents:read",
-        "downloader:read",
-        "sites:read",
-        "filters:read",
-        "filters:write",
-        "logs:read",
-        "notifications:send",
-        "integrations:read",
-        "integrations:run"
-      ],
-      "artifacts": {
-        "linux-amd64": {
-          "url": "https://github.com/thelinyue/Mediary-Plugins/releases/download/plugins-v0.2.0/mcp-server-v0.2.0-linux-amd64.tar.gz",
-          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-        }
-      }
-    },
-    {
       "id": "pansou",
       "name": "盘搜",
       "version": "0.1.3",
