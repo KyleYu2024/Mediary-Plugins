@@ -1,0 +1,67 @@
+{
+  "api_version": 1,
+  "id": "mcp-server",
+  "name": "MCP Server",
+  "version": "0.1.0",
+  "description": "提供 MCP (Model Context Protocol) 服务，支持 OpenClaw 等 AI 客户端连接并调用 Mediary 功能。",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write",
+    "downloads:read",
+    "downloads:create",
+    "downloads:write",
+    "torrents:read",
+    "downloader:read",
+    "sites:read",
+    "filters:read",
+    "filters:write",
+    "logs:read",
+    "notifications:send",
+    "integrations:read",
+    "integrations:run"
+  ],
+  "auto_grant_scopes": false,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "基础设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用 MCP 服务",
+            "default": false
+          }
+        ]
+      }
+    ]
+  },
+  "secret_fields": [],
+  "interactive_view": {
+    "title": "MCP Server",
+    "eyebrow": "AI 连接服务",
+    "action": "status",
+    "trigger": {
+      "label": "查看状态",
+      "icon": "info"
+    },
+    "submit": {
+      "label": "刷新",
+      "pending_label": "查询中",
+      "icon": "refresh"
+    },
+    "auto_run": true,
+    "layout": "list",
+    "fields": [],
+    "empty": {
+      "text": "MCP 服务器已启动，可通过 8100 端口连接",
+      "icon": "server"
+    },
+    "empty_result_text": "MCP 服务未运行",
+    "error_message": "MCP 服务状态查询失败。"
+  }
+}
