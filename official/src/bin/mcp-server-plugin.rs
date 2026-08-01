@@ -973,36 +973,56 @@ async fn run_mediary_stdin(_state: Arc<AppState>) {
                 match action.as_str() {
                     "status" => {
                         let result = json!({
-                            "notice": "MCP 服务器运行中 — 端点: http://localhost:8100/mcp",
+                            "notice": "MCP 服务运行中，通过 Mediary 代理访问",
                             "items": [
                                 {
+                                    "title": "MCP 端点（经 Mediary 代理）",
+                                    "subtitle": "无需额外开放端口，与 Mediary 共用同一地址",
+                                    "metadata": [
+                                        {"label": "路径", "value": "/api/plugin/mcp-server/mcp"}
+                                    ],
+                                    "actions": [
+                                        {
+                                            "type": "copy",
+                                            "label": "复制路径",
+                                            "text": "/api/plugin/mcp-server/mcp"
+                                        }
+                                    ]
+                                },
+                                {
                                     "title": "OpenClaw 连接",
-                                    "subtitle": "使用 Streamable HTTP 传输，填入端点地址即可",
-                                    "metadata": [{"label": "端点", "value": "http://localhost:8100/mcp"}],
+                                    "subtitle": "使用 Streamable HTTP 传输，URL 为 Mediary 地址 + 上方路径",
+                                    "metadata": [
+                                        {"label": "传输", "value": "Streamable HTTP"},
+                                        {"label": "端点", "value": "http://<mediary-host>/api/plugin/mcp-server/mcp"}
+                                    ],
                                     "actions": [
                                         {
                                             "type": "copy",
                                             "label": "复制端点",
-                                            "text": "http://localhost:8100/mcp"
+                                            "text": "http://localhost/api/plugin/mcp-server/mcp"
                                         }
                                     ]
                                 },
                                 {
                                     "title": "Hemes 连接",
-                                    "subtitle": "添加 MCP 服务器，选择 Streamable HTTP 类型",
-                                    "metadata": [{"label": "端点", "value": "http://localhost:8100/mcp"}],
+                                    "subtitle": "添加 MCP 服务器，类型选择 Streamable HTTP",
+                                    "metadata": [
+                                        {"label": "类型", "value": "streamableHttp"},
+                                        {"label": "端点", "value": "http://<mediary-host>/api/plugin/mcp-server/mcp"}
+                                    ],
                                     "actions": [
                                         {
                                             "type": "copy",
                                             "label": "复制端点",
-                                            "text": "http://localhost:8100/mcp"
+                                            "text": "http://localhost/api/plugin/mcp-server/mcp"
                                         }
                                     ]
                                 }
                             ],
                             "report": {
-                                "port": 8100,
                                 "tools": 18,
+                                "transport": "Mediary 代理 (Streamable HTTP)",
                                 "trigger": trigger
                             }
                         });
@@ -1046,12 +1066,12 @@ async fn run() -> Result<(), String> {
         .route("/mcp", post(handle_post).get(handle_get))
         .with_state(state.clone());
 
-    let addr = format!("0.0.0.0:{default_port}");
+    let addr = format!("127.0.0.1:{default_port}");
     let listener = TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("绑定地址失败 ({addr}): {e}"))?;
 
-    eprintln!("MCP 服务器启动: http://{addr}/mcp");
+    eprintln!("MCP 服务内部端点: http://{addr}/mcp（通过 Mediary 代理访问）");
 
     let server = axum::serve(listener, app);
 
