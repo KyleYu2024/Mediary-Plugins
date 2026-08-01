@@ -782,6 +782,19 @@ async fn run() -> Result<(), String> {
         &api_url
     };
 
+    let settings_json = env::var("MEDIARY_PLUGIN_SETTINGS_JSON").unwrap_or_default();
+    let settings: Value = serde_json::from_str(&settings_json).unwrap_or(Value::Null);
+    let has_token = settings
+        .get("mcp_api_token")
+        .and_then(Value::as_str)
+        .is_some_and(|t| !t.is_empty());
+
+    let auth_note = if has_token {
+        "（已配置 API Token 鉴权）"
+    } else {
+        ""
+    };
+
     let openclaw_template = format!(
         "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{base_url}/mcp\"}}}}}}"
     );
@@ -797,12 +810,17 @@ async fn run() -> Result<(), String> {
 
     match action.as_str() {
         "status" => {
-            let result = json!({
-                "notice": "MCP 服务已启动，端点路径: /mcp",
-                "items": [
+            let items = if has_token {
+                json!([
+                    {
+                        "title": "API Token 鉴权",
+                        "subtitle": "已在设置中配置 MCP 访问令牌，AI 客户端请求需携带 Authorization: Bearer <令牌> 请求头。令牌值见插件设置。",
+                        "metadata": [],
+                        "actions": []
+                    },
                     {
                         "title": "OpenClaw 连接方法",
-                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
+                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点: http://<你的Mediary地址>/mcp\n4. 在 Headers 中添加 Authorization: Bearer <你的令牌>\n\n复制下方 JSON 配置后替换地址和令牌即可。",
                         "metadata": [
                             {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
@@ -812,7 +830,7 @@ async fn run() -> Result<(), String> {
                     },
                     {
                         "title": "Hermes 连接方法",
-                        "subtitle": "1. 打开 Hermes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
+                        "subtitle": "1. 打开 Hermes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n4. 在 Headers 中添加 Authorization: Bearer <你的令牌>\n\n复制下方 JSON 配置后替换地址和令牌即可。",
                         "metadata": [
                             {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
@@ -820,9 +838,38 @@ async fn run() -> Result<(), String> {
                             { "type": "copy", "label": "复制 JSON 配置", "text": hermes_template }
                         ]
                     }
-                ],
+                ])
+            } else {
+                json!([
+                    {
+                        "title": "OpenClaw 连接方法",
+                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。\n\n提示：可在插件设置中配置 API Token 启用鉴权。",
+                        "metadata": [
+                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
+                        ],
+                        "actions": [
+                            { "type": "copy", "label": "复制 JSON 配置", "text": openclaw_template }
+                        ]
+                    },
+                    {
+                        "title": "Hermes 连接方法",
+                        "subtitle": "1. 打开 Hermes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。\n\n提示：可在插件设置中配置 API Token 启用鉴权。",
+                        "metadata": [
+                            {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
+                        ],
+                        "actions": [
+                            { "type": "copy", "label": "复制 JSON 配置", "text": hermes_template }
+                        ]
+                    }
+                ])
+            };
+
+            let result = json!({
+                "notice": format!("MCP 服务已启动，端点路径: /mcp{auth_note}"),
+                "items": items,
                 "report": {
                     "tools": 18,
+                    "auth_enabled": has_token,
                     "trigger": trigger
                 }
             });
