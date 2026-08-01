@@ -785,7 +785,7 @@ async fn run() -> Result<(), String> {
     let openclaw_template = format!(
         "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{base_url}/mcp\"}}}}}}"
     );
-    let hemes_template = format!(
+    let hermes_template = format!(
         "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{base_url}/mcp\"}}}}}}"
     );
 
@@ -811,13 +811,13 @@ async fn run() -> Result<(), String> {
                         ]
                     },
                     {
-                        "title": "Hemes 连接方法",
-                        "subtitle": "1. 打开 Hemes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
+                        "title": "Hermes 连接方法",
+                        "subtitle": "1. 打开 Hermes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n\n端点地址为你的 Mediary 访问地址 + /mcp，复制下方 JSON 配置后替换地址即可。",
                         "metadata": [
                             {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "复制 JSON 配置", "text": hemes_template }
+                            { "type": "copy", "label": "复制 JSON 配置", "text": hermes_template }
                         ]
                     }
                 ],
