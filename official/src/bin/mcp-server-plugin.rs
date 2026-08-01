@@ -979,13 +979,13 @@ async fn run_mediary_stdin(_state: Arc<AppState>) {
                                     "title": "MCP 端点（经 Mediary 代理）",
                                     "subtitle": "无需额外开放端口，与 Mediary 共用同一地址",
                                     "metadata": [
-                                        {"label": "路径", "value": "/api/plugin/mcp-server/mcp"}
+                                        {"label": "路径", "value": "/mcp"}
                                     ],
                                     "actions": [
                                         {
                                             "type": "copy",
                                             "label": "复制路径",
-                                            "text": "/api/plugin/mcp-server/mcp"
+                                            "text": "/mcp"
                                         }
                                     ]
                                 },
@@ -994,13 +994,13 @@ async fn run_mediary_stdin(_state: Arc<AppState>) {
                                     "subtitle": "使用 Streamable HTTP 传输，URL 为 Mediary 地址 + 上方路径",
                                     "metadata": [
                                         {"label": "传输", "value": "Streamable HTTP"},
-                                        {"label": "端点", "value": "http://<mediary-host>/api/plugin/mcp-server/mcp"}
+                                        {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
                                     ],
                                     "actions": [
                                         {
                                             "type": "copy",
                                             "label": "复制端点",
-                                            "text": "http://localhost/api/plugin/mcp-server/mcp"
+                                            "text": "http://192.168.10.150:8118/mcp"
                                         }
                                     ]
                                 },
@@ -1009,13 +1009,13 @@ async fn run_mediary_stdin(_state: Arc<AppState>) {
                                     "subtitle": "添加 MCP 服务器，类型选择 Streamable HTTP",
                                     "metadata": [
                                         {"label": "类型", "value": "streamableHttp"},
-                                        {"label": "端点", "value": "http://<mediary-host>/api/plugin/mcp-server/mcp"}
+                                        {"label": "端点", "value": "http://192.168.10.150:8118/mcp"}
                                     ],
                                     "actions": [
                                         {
                                             "type": "copy",
                                             "label": "复制端点",
-                                            "text": "http://localhost/api/plugin/mcp-server/mcp"
+                                            "text": "http://192.168.10.150:8118/mcp"
                                         }
                                     ]
                                 }

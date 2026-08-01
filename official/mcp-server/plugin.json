@@ -34,7 +34,7 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后在 127.0.0.1:8100 启动内部 MCP 服务，由 Mediary 代理至 /api/plugin/mcp-server/mcp，AI 客户端通过 Mediary 地址连接。",
+            "help": "启用后在 127.0.0.1:8100 启动内部 MCP 服务，由 Mediary 代理至 /mcp，AI 客户端通过 Mediary 地址直接访问。",
             "default": false
           }
         ]
@@ -46,15 +46,15 @@
             "key": "endpoint_url",
             "type": "text",
             "label": "MCP 端点地址",
-            "default": "http://localhost/api/plugin/mcp-server/mcp",
-            "placeholder": "http://localhost/api/plugin/mcp-server/mcp",
-            "help": "MCP 端点通过 Mediary 代理暴露，无需额外开放端口。将 localhost 替换为 Mediary 宿主机 IP 或域名。"
+            "default": "http://192.168.10.150:8118/mcp",
+            "placeholder": "http://192.168.10.150:8118/mcp",
+            "help": "MCP 端点通过 Mediary 代理暴露，无需额外开放端口。将 IP 和端口替换为你的 Mediary 实际地址。"
           },
           {
             "key": "openclaw_example",
             "type": "text",
             "label": "OpenClaw 连接",
-            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"http\",\"url\":\"http://localhost/api/plugin/mcp-server/mcp\"}}}",
+            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"http\",\"url\":\"http://192.168.10.150:8118/mcp\"}}}",
             "placeholder": "OpenClaw mcpServers 配置",
             "help": "在 OpenClaw 的 MCP 连接设置中选择 Streamable HTTP 传输，填入上方端点地址即可。以上为 JSON 配置参考格式。"
           },
@@ -62,7 +62,7 @@
             "key": "hemes_example",
             "type": "text",
             "label": "Hemes 连接",
-            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"streamableHttp\",\"url\":\"http://localhost/api/plugin/mcp-server/mcp\"}}}",
+            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"streamableHttp\",\"url\":\"http://192.168.10.150:8118/mcp\"}}}",
             "placeholder": "Hemes mcpServers 配置",
             "help": "在 Hemes 设置中添加 MCP 服务器，选择 Streamable HTTP 类型，填入上方端点地址。以上为 JSON 配置参考格式。"
           }
@@ -88,7 +88,7 @@
     "layout": "list",
     "fields": [],
     "empty": {
-      "text": "MCP 服务运行中 — 通过 /api/plugin/mcp-server/mcp 访问 | 已支持 18 个工具",
+      "text": "MCP 服务运行中 — 通过 /mcp 访问 | 已支持 18 个工具",
       "icon": "server"
     },
     "empty_result_text": "MCP 服务未运行。请在设置中启用该插件。",
