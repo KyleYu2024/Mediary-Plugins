@@ -783,6 +783,13 @@ async fn run() -> Result<(), String> {
     };
     let mcp_endpoint = format!("{base_url}/mcp");
 
+    let openclaw_template = format!(
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+    );
+    let hemes_template = format!(
+        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{mcp_endpoint}\"}}}}}}"
+    );
+
     let ctx = PluginContext {
         api_url: api_url.trim_end_matches('/').to_string(),
         api_token,
@@ -791,35 +798,27 @@ async fn run() -> Result<(), String> {
 
     match action.as_str() {
         "status" => {
-            let openclaw_config = format!(
-                "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{mcp_endpoint}\"}}}}}}"
-            );
-            let hemes_config = format!(
-                "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{mcp_endpoint}\"}}}}}}"
-            );
             let result = json!({
-                "notice": "MCP 服务运行中，通过 Mediary /mcp 端点访问",
+                "notice": format!("MCP 服务已启动，端点: {mcp_endpoint}"),
                 "items": [
                     {
-                        "title": "OpenClaw 连接",
-                        "subtitle": "复制下方 JSON 配置，粘贴到 OpenClaw 的 MCP 设置中即可连接",
+                        "title": "OpenClaw 连接方法",
+                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点地址后保存即可",
                         "metadata": [
-                            {"label": "端点", "value": mcp_endpoint},
-                            {"label": "配置", "value": openclaw_config}
+                            {"label": "端点", "value": mcp_endpoint}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "一键复制配置", "text": openclaw_config }
+                            { "type": "copy", "label": "复制 JSON 配置", "text": openclaw_template }
                         ]
                     },
                     {
-                        "title": "Hemes 连接",
-                        "subtitle": "复制下方 JSON 配置，粘贴到 Hemes 的 MCP 设置中即可连接",
+                        "title": "Hemes 连接方法",
+                        "subtitle": "1. 打开 Hemes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点地址后保存即可",
                         "metadata": [
-                            {"label": "端点", "value": mcp_endpoint},
-                            {"label": "配置", "value": hemes_config}
+                            {"label": "端点", "value": mcp_endpoint}
                         ],
                         "actions": [
-                            { "type": "copy", "label": "一键复制配置", "text": hemes_config }
+                            { "type": "copy", "label": "复制 JSON 配置", "text": hemes_template }
                         ]
                     }
                 ],
