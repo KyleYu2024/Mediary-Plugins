@@ -776,19 +776,6 @@ async fn run() -> Result<(), String> {
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
     let trigger = env::var("MEDIARY_PLUGIN_TRIGGER").unwrap_or_default();
 
-    let base_url = if let Some(pos) = api_url.rfind("/api") {
-        &api_url[..pos]
-    } else {
-        &api_url
-    };
-
-    let openclaw_template = format!(
-        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"http\",\"url\":\"{base_url}/mcp\"}}}}}}"
-    );
-    let hermes_template = format!(
-        "{{\"mcpServers\":{{\"mediary\":{{\"type\":\"streamableHttp\",\"url\":\"{base_url}/mcp\"}}}}}}"
-    );
-
     let ctx = PluginContext {
         api_url: api_url.trim_end_matches('/').to_string(),
         api_token,
@@ -801,30 +788,28 @@ async fn run() -> Result<(), String> {
                 "notice": "MCP 服务已启动，端点路径: /mcp",
                 "items": [
                     {
-                        "title": "外部调用须知",
-                        "subtitle": "MCP 端点 /mcp 需要 Mediary API Token 鉴权。AI 客户端请求时需在 Header 中添加:\nAuthorization: Bearer <Mediary API Token>\n\nAPI Token 可在 Mediary 设置 → API Token 中获取。",
+                        "title": "鉴权说明",
+                        "subtitle": "MCP 端点 /mcp 需要 Mediary API Token 鉴权，AI 客户端请求时需在 Header 中添加 Authorization: Bearer <你的API Token>。Token 可在 Mediary 设置 → API Token 中获取。",
                         "metadata": [],
                         "actions": []
                     },
                     {
-                        "title": "OpenClaw 连接方法",
-                        "subtitle": "1. 打开 OpenClaw → MCP 设置\n2. 添加服务器 → 选择 Streamable HTTP 传输\n3. 填入端点: http://<你的Mediary地址>/mcp\n4. 在 Headers 中添加 Authorization: Bearer <你的API Token>\n\n复制下方 JSON 配置后替换地址并添加 token 即可。",
+                        "title": "OpenClaw 连接",
+                        "subtitle": "传输类型: Streamable HTTP\n端点地址: http://<你的Mediary地址>/mcp\n\n配置示例:\n{\n  \"mcpServers\": {\n    \"mediary\": {\n      \"type\": \"http\",\n      \"url\": \"http://<你的Mediary地址>/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer <你的API Token>\"\n      }\n    }\n  }\n}",
                         "metadata": [
+                            {"label": "传输", "value": "Streamable HTTP"},
                             {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
-                        "actions": [
-                            { "type": "copy", "label": "复制 JSON 配置", "text": openclaw_template }
-                        ]
+                        "actions": []
                     },
                     {
-                        "title": "Hermes 连接方法",
-                        "subtitle": "1. 打开 Hermes → MCP 服务器设置\n2. 添加服务器 → 类型选择 streamableHttp\n3. 填入端点: http://<你的Mediary地址>/mcp\n4. 在 Headers 中添加 Authorization: Bearer <你的API Token>\n\n复制下方 JSON 配置后替换地址并添加 token 即可。",
+                        "title": "Hermes 连接",
+                        "subtitle": "传输类型: streamableHttp\n端点地址: http://<你的Mediary地址>/mcp\n\n配置示例:\n{\n  \"mcpServers\": {\n    \"mediary\": {\n      \"type\": \"streamableHttp\",\n      \"url\": \"http://<你的Mediary地址>/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer <你的API Token>\"\n      }\n    }\n  }\n}",
                         "metadata": [
+                            {"label": "传输", "value": "streamableHttp"},
                             {"label": "端点", "value": "http://<你的Mediary地址>/mcp"}
                         ],
-                        "actions": [
-                            { "type": "copy", "label": "复制 JSON 配置", "text": hermes_template }
-                        ]
+                        "actions": []
                     }
                 ],
                 "report": {
