@@ -2,7 +2,7 @@
   "id": "mcp-server",
   "name": "MCP Server",
   "version": "0.1.2",
-  "description": "为 Mediary 提供 MCP (Model Context Protocol) 服务，通过 /mcp 端点接收 OpenClaw、Hemes 等 AI 客户端请求，实现 AI 对话中直接调用 Mediary 全部功能。启用后自动授予所有权限。",
+  "description": "为 Mediary 提供 MCP (Model Context Protocol) 服务，通过 /mcp 端点接收 OpenClaw、Hemes 等 AI 客户端请求，实现 AI 对话中直接调用 Mediary 全部功能。",
   "author": "thelinyue",
   "homepage": "https://github.com/thelinyue/Mediary-Plugins/tree/main/official/mcp-server",
   "source": "https://github.com/thelinyue/Mediary-Plugins/tree/main/official",

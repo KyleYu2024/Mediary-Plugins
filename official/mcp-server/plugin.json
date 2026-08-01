@@ -3,7 +3,7 @@
   "id": "mcp-server",
   "name": "MCP Server",
   "version": "0.1.2",
-  "description": "为 Mediary 提供 MCP (Model Context Protocol) 服务，通过 /mcp 端点接收 OpenClaw、Hemes 等 AI 客户端请求，实现 AI 对话中直接调用 Mediary 全部功能。启用后自动授予所有权限。",
+  "description": "为 Mediary 提供 MCP (Model Context Protocol) 服务，通过 /mcp 端点接收 OpenClaw、Hemes 等 AI 客户端请求，实现 AI 对话中直接调用 Mediary 全部功能。",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -24,7 +24,7 @@
     "integrations:read",
     "integrations:run"
   ],
-  "auto_grant_scopes": true,
+  "auto_grant_scopes": false,
   "settings_schema": {
     "sections": [
       {
@@ -34,7 +34,7 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后自动授予全部 14 项权限，MCP 服务通过 /mcp 端点（与 Mediary 共用端口）接收 AI 客户端请求。OpenClaw、Hemes 等客户端连接方法请查看插件卡片。",
+            "help": "启用后 MCP 服务通过 /mcp 端点（与 Mediary 共用端口）接收 AI 客户端请求。首次启用需在下方权限设置中手动勾选所需权限。OpenClaw、Hemes 等客户端连接方法请查看插件卡片。",
             "default": false
           }
         ]
@@ -59,7 +59,7 @@
     "layout": "list",
     "fields": [],
     "empty": {
-      "text": "MCP 服务运行中 — 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具 | 权限已自动全部授予",
+      "text": "MCP 服务运行中 — 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具",
       "icon": "server"
     },
     "empty_result_text": "MCP 服务未运行。请在设置中启用该插件。",
