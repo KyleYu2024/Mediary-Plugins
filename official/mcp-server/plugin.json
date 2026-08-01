@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "mcp-server",
   "name": "MCP Server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "提供 MCP (Model Context Protocol) 服务，通过 Mediary /mcp 端点暴露，支持 OpenClaw、Hemes 等 AI 客户端连接并调用 Mediary 功能。",
   "action_runtime": {
     "entrypoint": "./plugin"

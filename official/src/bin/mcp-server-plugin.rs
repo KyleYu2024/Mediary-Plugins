@@ -737,7 +737,7 @@ async fn dispatch_jsonrpc(ctx: &PluginContext, request: JsonRpcRequest) -> JsonR
             let result = InitializeResult {
                 protocol_version: "2024-11-05",
                 capabilities: json!({ "tools": {} }),
-                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.1.0" },
+                server_info: ServerInfo { name: "mediary-mcp-server", version: "0.1.1" },
                 instructions: "通过 MCP 连接到 Mediary 媒体管理中心。可用工具包括搜索目录、管理订阅、查看下载等。",
             };
             JsonRpcResponse::ok(id, serde_json::to_value(result).unwrap_or_default())
