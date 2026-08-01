@@ -973,10 +973,36 @@ async fn run_mediary_stdin(_state: Arc<AppState>) {
                 match action.as_str() {
                     "status" => {
                         let result = json!({
-                            "notice": "MCP 服务器运行中，端口: 8100",
-                            "items": [],
+                            "notice": "MCP 服务器运行中 — 端点: http://localhost:8100/mcp",
+                            "items": [
+                                {
+                                    "title": "OpenClaw 连接",
+                                    "subtitle": "使用 Streamable HTTP 传输，填入端点地址即可",
+                                    "metadata": [{"label": "端点", "value": "http://localhost:8100/mcp"}],
+                                    "actions": [
+                                        {
+                                            "type": "copy",
+                                            "label": "复制端点",
+                                            "text": "http://localhost:8100/mcp"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "title": "Hemes 连接",
+                                    "subtitle": "添加 MCP 服务器，选择 Streamable HTTP 类型",
+                                    "metadata": [{"label": "端点", "value": "http://localhost:8100/mcp"}],
+                                    "actions": [
+                                        {
+                                            "type": "copy",
+                                            "label": "复制端点",
+                                            "text": "http://localhost:8100/mcp"
+                                        }
+                                    ]
+                                }
+                            ],
                             "report": {
                                 "port": 8100,
+                                "tools": 18,
                                 "trigger": trigger
                             }
                         });

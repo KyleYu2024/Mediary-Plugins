@@ -34,7 +34,37 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
+            "help": "启用后在 8100 端口启动 MCP Streamable HTTP 服务，AI 客户端可连接并调用 Mediary 全部功能。",
             "default": false
+          }
+        ]
+      },
+      {
+        "title": "Agent 连接指南",
+        "fields": [
+          {
+            "key": "endpoint_url",
+            "type": "text",
+            "label": "MCP 端点地址",
+            "default": "http://localhost:8100/mcp",
+            "placeholder": "http://localhost:8100/mcp",
+            "help": "将 localhost 替换为 Mediary 宿主机 IP 或域名，端口固定 8100，路径固定 /mcp。"
+          },
+          {
+            "key": "openclaw_example",
+            "type": "text",
+            "label": "OpenClaw 连接",
+            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"http\",\"url\":\"http://localhost:8100/mcp\"}}}",
+            "placeholder": "OpenClaw mcpServers 配置",
+            "help": "在 OpenClaw 的 MCP 连接设置中选择 Streamable HTTP 传输，填入上方端点地址即可。以上为 JSON 配置参考格式。"
+          },
+          {
+            "key": "hemes_example",
+            "type": "text",
+            "label": "Hemes 连接",
+            "default": "{\"mcpServers\":{\"mediary\":{\"type\":\"streamableHttp\",\"url\":\"http://localhost:8100/mcp\"}}}",
+            "placeholder": "Hemes mcpServers 配置",
+            "help": "在 Hemes 设置中添加 MCP 服务器，选择 Streamable HTTP 类型，填入上方端点地址。以上为 JSON 配置参考格式。"
           }
         ]
       }
@@ -58,10 +88,10 @@
     "layout": "list",
     "fields": [],
     "empty": {
-      "text": "MCP 服务器已启动，可通过 8100 端口连接",
+      "text": "MCP 服务运行中 — 端点: http://localhost:8100/mcp | 已支持 18 个工具",
       "icon": "server"
     },
-    "empty_result_text": "MCP 服务未运行",
+    "empty_result_text": "MCP 服务未运行。请在设置中启用该插件。",
     "error_message": "MCP 服务状态查询失败。"
   }
 }
