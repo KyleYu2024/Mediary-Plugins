@@ -1,0 +1,49 @@
+{
+  "id": "mcp-server",
+  "name": "MCP Server",
+  "version": "0.2.0",
+  "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 使用目录、订阅、下载和通知工具。",
+  "author": "thelinyue",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.5/official/mcp-server",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.5/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "1.0.3",
+  "permissions": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write",
+    "downloads:read",
+    "downloads:create",
+    "downloads:write",
+    "torrents:read",
+    "downloader:read",
+    "sites:read",
+    "filters:read",
+    "filters:write",
+    "logs:read",
+    "notifications:send"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-linux-amd64.tar.gz",
+      "sha256": "3221b06d2606ae3be3f3ce4036b6606e5c94e2abaed3361c334419ae82122d75",
+      "size": 2296318
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-linux-arm64.tar.gz",
+      "sha256": "862223e87bc52bf60403f9a15029f0185f2da8c636f56faf57826f5f44bd2418",
+      "size": 2317299
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-darwin-amd64.tar.gz",
+      "sha256": "89bcda75247142b0b7abbbe04d84404ea3285f2cc1a40e514251711b271b8a33",
+      "size": 2172868
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-darwin-arm64.tar.gz",
+      "sha256": "e30b22eabe4c86f734a48b30ef52d3f5d769fbbbb4a4692a4f54d1e106a8b8bf",
+      "size": 2106669
+    }
+  }
+}
