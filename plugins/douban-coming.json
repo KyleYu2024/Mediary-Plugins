@@ -3,7 +3,7 @@
   "name": "豆瓣将映",
   "version": "1.0.1",
   "description": "监控豆瓣即将开播电视剧，按想看人数筛选，提前创建订阅并发送开播提醒",
-  "author": "Ladavian",
+  "author": "schuck",
   "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins/tree/main/plugins/douban-coming",
   "source": "https://github.com/Ladavian/Mediary-Community-Plugins",
   "license": "GPL-3.0-only",
