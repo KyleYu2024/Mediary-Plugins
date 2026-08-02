@@ -2,6 +2,62 @@
   "schema_version": 1,
   "plugins": [
     {
+      "id": "dockercopilot-helper",
+      "name": "DC 助手",
+      "version": "1.0.6",
+      "description": "连接 Docker Copilot，检查和自动更新容器、清理未使用的无标签镜像并备份容器配置，并发送系统通知",
+      "author": "schuck",
+      "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins/tree/main/plugins/dockercopilot-helper",
+      "source": "https://github.com/Ladavian/Mediary-Community-Plugins",
+      "api_version": 1,
+      "min_mediary_version": "0.7.7",
+      "permissions": [
+        "notifications:send"
+      ],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.6/dockercopilot-helper-1.0.6-linux-amd64.tar.gz",
+          "sha256": "94331f5a2aba906ae153d0039046906cdd5d0117f1608002027c75a6998ea227",
+          "size": 2283225
+        },
+        "linux-arm64": {
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.6/dockercopilot-helper-1.0.6-linux-arm64.tar.gz",
+          "sha256": "5f12a6b334c5f35c6ea8ed6d145b7e4fe85d26991259ca7369701529f3192f7f",
+          "size": 2278429
+        }
+      }
+    },
+    {
+      "id": "douban-coming",
+      "name": "豆瓣将映",
+      "version": "1.0.1",
+      "description": "监控豆瓣即将开播电视剧，按想看人数筛选，提前创建订阅并发送开播提醒",
+      "author": "schuck",
+      "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins/tree/main/plugins/douban-coming",
+      "source": "https://github.com/Ladavian/Mediary-Community-Plugins",
+      "license": "GPL-3.0-only",
+      "api_version": 1,
+      "min_mediary_version": "0.8.8",
+      "permissions": [
+        "catalog:read",
+        "subscriptions:read",
+        "subscriptions:write",
+        "notifications:send"
+      ],
+      "artifacts": {
+        "linux-amd64": {
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.1/douban-coming-1.0.1-linux-amd64.tar.gz",
+          "sha256": "b32cbb4739c55298172ed457123e95086f96a26f27407c082e89b6ca3b8ea92d",
+          "size": 2981804
+        },
+        "linux-arm64": {
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.1/douban-coming-1.0.1-linux-arm64.tar.gz",
+          "sha256": "c7036c698461b1b0cf4cb5eb56817e29bb31bcf6d6575828750268293075e9d9",
+          "size": 2975413
+        }
+      }
+    },
+    {
       "id": "maoyan-rank",
       "name": "猫眼榜单订阅",
       "version": "0.2.0",
