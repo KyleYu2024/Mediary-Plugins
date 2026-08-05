@@ -1,24 +1,26 @@
 {
   "id": "dockercopilot-helper",
   "name": "DC 助手",
-  "version": "1.0.9",
+  "version": "1.0.12",
   "description": "连接 Docker Copilot，检查和自动更新容器、清理未使用的无标签镜像并备份容器配置，并发送系统通知",
   "author": "schuck",
-  "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins/tree/main/plugins/dockercopilot-helper",
+  "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins",
   "source": "https://github.com/Ladavian/Mediary-Community-Plugins",
   "api_version": 1,
   "min_mediary_version": "0.7.7",
-  "permissions": ["notifications:send"],
+  "permissions": [
+    "notifications:send"
+  ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.9/dockercopilot-helper-1.0.9-linux-amd64.tar.gz",
-      "sha256": "c61f2599225d6c9d76cc6bd47aa9bfc3ccc54f9c95f5a594b7d04a1628c72586",
-      "size": 2282968
+      "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.12/dockercopilot-helper-1.0.12-linux-amd64.tar.gz",
+      "sha256": "843d6e5f8b1f82264a2dfa88546beb67a3b280303b073357e785b2546b1f9b85",
+      "size": 2283010
     },
     "linux-arm64": {
-      "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.9/dockercopilot-helper-1.0.9-linux-arm64.tar.gz",
-      "sha256": "e7eab795631f13edf5ca1f60b23c04d43ffa9b1731aea187d18d10286760f142",
-      "size": 2278374
+      "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/dockercopilot-helper-v1.0.12/dockercopilot-helper-1.0.12-linux-arm64.tar.gz",
+      "sha256": "a6929e0ff8e916791920d30a94a63df7bd3e25f9e2d14f65a83a4c6dafa834e2",
+      "size": 2281759
     }
   }
 }
