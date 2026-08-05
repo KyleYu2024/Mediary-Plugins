@@ -30,7 +30,7 @@
     {
       "id": "douban-coming",
       "name": "豆瓣将映",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "监控豆瓣即将开播电视剧，按想看人数筛选，提前创建订阅并发送开播提醒",
       "author": "schuck",
       "homepage": "https://github.com/Ladavian/Mediary-Community-Plugins/tree/main/plugins/douban-coming",
@@ -46,14 +46,14 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.4/douban-coming-1.0.4-linux-amd64.tar.gz",
-          "sha256": "94f2b1590605c8e7601ef3bc57157424b7227b69f4e1398920970ca8e63f10c3",
-          "size": 2982021
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.5/douban-coming-1.0.5-linux-amd64.tar.gz",
+          "sha256": "28cad0a2d81b8d7d0da0603997aa586221b841a9dabcedb43a7e9d25acce4a81",
+          "size": 2981204
         },
         "linux-arm64": {
-          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.4/douban-coming-1.0.4-linux-arm64.tar.gz",
-          "sha256": "8100aa33ce3c93bc78c319d612be0eb79d4a680fd68855ba1e067941855be0fb",
-          "size": 2973827
+          "url": "https://github.com/Ladavian/Mediary-Community-Plugins/releases/download/douban-coming-v1.0.5/douban-coming-1.0.5-linux-arm64.tar.gz",
+          "sha256": "0a0ed9ae61f5309e0a9ad5b3ff0020370dab45603b89f0b1665dc42a36a061de",
+          "size": 2973967
         }
       }
     },
