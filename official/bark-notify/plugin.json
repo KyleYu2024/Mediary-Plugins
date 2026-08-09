@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "bark-notify",
   "name": "Bark 通知",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "将选定类型的 Mediary 通知推送到 Bark，支持官方服务和自建 Bark Server",
   "runtime": {
     "entrypoint": "./plugin"
@@ -74,7 +74,7 @@
       },
       {
         "title": "通知范围",
-        "alert": "这里只控制 Bark 接收范围；系统设置中已关闭的通知模板不会产生插件事件。",
+        "alert": "这里只控制 Bark 接收范围，与系统设置中的通知开关相互独立。",
         "fields": [
           {
             "key": "notification_types",

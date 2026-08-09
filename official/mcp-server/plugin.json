@@ -2,8 +2,8 @@
   "api_version": 1,
   "id": "mcp-server",
   "name": "MCP Server",
-  "version": "0.2.0",
-  "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 使用目录、订阅、下载和通知工具。",
+  "version": "0.3.0",
+  "description": "为 Mediary 提供符合 Streamable HTTP 规范的 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端安全使用目录、订阅、下载和通知工具。",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -15,7 +15,6 @@
     "downloads:read",
     "downloads:create",
     "downloads:write",
-    "torrents:read",
     "downloader:read",
     "sites:read",
     "filters:read",
@@ -33,7 +32,7 @@
             "key": "$enabled",
             "type": "switch",
             "label": "启用 MCP 服务",
-            "help": "启用后对外开放 /mcp 端点（与 Mediary 共用端口）。需在下方权限设置中手动勾选所需权限，并在上方填写 Mediary 访问地址。",
+            "help": "启用后对外开放 /mcp 端点（与 Mediary 共用端口）。请仅授予实际需要的权限，并妥善保管主 API Token。",
             "default": false
           },
           {
@@ -65,7 +64,7 @@
     "layout": "list",
     "fields": [],
     "empty": {
-      "text": "MCP 服务运行中 — 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具",
+      "text": "MCP 服务运行中 - 端点 /mcp（与 Mediary 共用端口）| 已支持 18 个工具",
       "icon": "server"
     },
     "empty_result_text": "暂未获取到状态。请确认插件已启用并配置了 Mediary 访问地址。",
