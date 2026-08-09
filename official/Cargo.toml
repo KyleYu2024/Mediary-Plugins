@@ -20,12 +20,16 @@ name = "subscribe-reminder-plugin"
 path = "src/bin/subscribe-reminder-plugin.rs"
 
 [[bin]]
-name = "mcp-server-plugin"
-path = "src/bin/mcp-server-plugin.rs"
+name = "bark-notify-plugin"
+path = "src/bin/bark-notify-plugin.rs"
 
 [dependencies]
+axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }
+hex = "0.4"
+hmac = "0.12"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "sync"] }
+sha2 = "0.10"
+tokio = { version = "1.38", features = ["macros", "net", "rt-multi-thread", "sync"] }

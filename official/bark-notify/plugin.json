@@ -1,0 +1,161 @@
+{
+  "api_version": 1,
+  "id": "bark-notify",
+  "name": "Bark 通知",
+  "version": "0.1.0",
+  "description": "将选定类型的 Mediary 通知推送到 Bark，支持官方服务和自建 Bark Server",
+  "runtime": {
+    "entrypoint": "./plugin"
+  },
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "events": [
+    "notification.subscription_added",
+    "notification.download_started",
+    "notification.transfer_completed",
+    "notification.library_added"
+  ],
+  "webhook_url": "http://127.0.0.1:18119/events",
+  "signing_secret_field": "webhook_secret",
+  "secret_fields": [
+    "device_key",
+    "webhook_secret"
+  ],
+  "requested_scopes": [],
+  "auto_grant_scopes": true,
+  "interactive_view": {
+    "title": "Bark 连接测试",
+    "action": "test",
+    "trigger": {
+      "label": "测试通知",
+      "icon": "play"
+    },
+    "submit": {
+      "label": "发送测试通知",
+      "pending_label": "正在发送",
+      "icon": "play"
+    },
+    "fields": [],
+    "empty": {
+      "text": "保存 Bark 配置后，可在这里发送一条测试通知。",
+      "icon": "play"
+    }
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "Bark 连接",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "server_url",
+            "type": "text",
+            "label": "Bark 服务器",
+            "placeholder": "https://api.day.app",
+            "default": "https://api.day.app",
+            "help": "自建服务填写服务器根地址，插件会请求其 /push 接口。",
+            "span": 2
+          },
+          {
+            "key": "device_key",
+            "type": "text",
+            "label": "设备 Key",
+            "placeholder": "Bark App 中显示的 Key",
+            "help": "设备 Key 会在界面中遮蔽显示，不会写入日志。",
+            "span": 2
+          }
+        ]
+      },
+      {
+        "title": "通知范围",
+        "alert": "这里只控制 Bark 接收范围；系统设置中已关闭的通知模板不会产生插件事件。",
+        "fields": [
+          {
+            "key": "notification_types",
+            "type": "multiselect",
+            "label": "接收通知类型",
+            "default": [
+              "notification.subscription_added",
+              "notification.download_started",
+              "notification.transfer_completed",
+              "notification.library_added"
+            ],
+            "options": [
+              {
+                "label": "新增订阅",
+                "value": "notification.subscription_added"
+              },
+              {
+                "label": "开始下载",
+                "value": "notification.download_started"
+              },
+              {
+                "label": "整理完成",
+                "value": "notification.transfer_completed"
+              },
+              {
+                "label": "媒体入库",
+                "value": "notification.library_added"
+              }
+            ],
+            "span": 2
+          }
+        ]
+      },
+      {
+        "title": "推送样式",
+        "fields": [
+          {
+            "key": "group",
+            "type": "text",
+            "label": "通知分组",
+            "default": "Mediary"
+          },
+          {
+            "key": "sound",
+            "type": "text",
+            "label": "通知铃声",
+            "placeholder": "留空使用 Bark 默认铃声",
+            "default": ""
+          },
+          {
+            "key": "level",
+            "type": "select",
+            "label": "提醒级别",
+            "default": "active",
+            "options": [
+              {
+                "label": "主动提醒",
+                "value": "active"
+              },
+              {
+                "label": "时效性提醒",
+                "value": "timeSensitive"
+              },
+              {
+                "label": "静默通知",
+                "value": "passive"
+              },
+              {
+                "label": "重要警报",
+                "value": "critical"
+              }
+            ]
+          },
+          {
+            "key": "icon_url",
+            "type": "text",
+            "label": "通知图标",
+            "default": "https://img.andp.cc/icons/upload/Mediary.png"
+          }
+        ]
+      }
+    ]
+  }
+}
