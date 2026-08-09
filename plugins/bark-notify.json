@@ -1,0 +1,35 @@
+{
+  "id": "bark-notify",
+  "name": "Bark 通知",
+  "version": "0.1.0",
+  "description": "将选定类型的 Mediary 通知推送到 Bark，支持官方服务和自建 Bark Server",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official/bark-notify",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "1.7.3",
+  "permissions": [],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/bark-notify-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "40959ed4308e1d5a997344fc303535bba315f6f6c476ae96cf7c7469bf07c0e4",
+      "size": 2384725
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/bark-notify-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "2a9d52e1b4aaa1aa4365b582563018fb01b9d44b53ba99be800dc95d70ec730e",
+      "size": 2403983
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/bark-notify-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "a2f15d74556dbbba89aafe1794cf9867677017cf2b0c4e27c37614ab93611e85",
+      "size": 2269011
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/bark-notify-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "81c11bc0f93b66f7230cc332bda9ac521b36300365618951eba19af8a57aea7c",
+      "size": 2195367
+    }
+  }
+}

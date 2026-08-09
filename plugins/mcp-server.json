@@ -4,8 +4,8 @@
   "version": "0.2.0",
   "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 使用目录、订阅、下载和通知工具。",
   "author": "thelinyue",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.5/official/mcp-server",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.5/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official/mcp-server",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.0.3",
@@ -26,24 +26,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-linux-amd64.tar.gz",
-      "sha256": "3221b06d2606ae3be3f3ce4036b6606e5c94e2abaed3361c334419ae82122d75",
-      "size": 2296318
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-linux-amd64.tar.gz",
+      "sha256": "ca544ce27381f0f241034b22d1147550db313e10f1b56a8262b3fc8a8a50eb92",
+      "size": 2349953
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-linux-arm64.tar.gz",
-      "sha256": "862223e87bc52bf60403f9a15029f0185f2da8c636f56faf57826f5f44bd2418",
-      "size": 2317299
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-linux-arm64.tar.gz",
+      "sha256": "58b1116e21375c7ae398a501506c51eac3850bdaff1faf02f23edea8fc89c53a",
+      "size": 2360386
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-darwin-amd64.tar.gz",
-      "sha256": "89bcda75247142b0b7abbbe04d84404ea3285f2cc1a40e514251711b271b8a33",
-      "size": 2172868
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-darwin-amd64.tar.gz",
+      "sha256": "85737da7b3958393de94a6a19fa576782091e063c3ad68a7b339e7b79a3f8bdd",
+      "size": 2243711
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.5/mcp-server-v0.2.0-darwin-arm64.tar.gz",
-      "sha256": "e30b22eabe4c86f734a48b30ef52d3f5d769fbbbb4a4692a4f54d1e106a8b8bf",
-      "size": 2106669
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-darwin-arm64.tar.gz",
+      "sha256": "2a1d0b5595ae64ee87ba72b85764a1bb4c288dddf762c6cf0513dce8071719c5",
+      "size": 2172045
     }
   }
 }
