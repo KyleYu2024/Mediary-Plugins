@@ -23,6 +23,10 @@ path = "src/bin/subscribe-reminder-plugin.rs"
 name = "bark-notify-plugin"
 path = "src/bin/bark-notify-plugin.rs"
 
+[[bin]]
+name = "mcp-server-plugin"
+path = "src/bin/mcp-server-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }
