@@ -13,13 +13,21 @@ if (!/^plugins-v[0-9A-Za-z.-]+$/.test(releaseTag)) {
 const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
-const pluginIds = ['maoyan-rank', 'pansou', 'tmdb-trending', 'subscribe-reminder', 'mcp-server'];
+const pluginIds = [
+  'maoyan-rank',
+  'pansou',
+  'tmdb-trending',
+  'subscribe-reminder',
+  'mcp-server',
+  'bark-notify',
+];
 const minimumMediaryVersions = {
   'maoyan-rank': '0.7.7',
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
   'mcp-server': '1.0.3',
+  'bark-notify': '1.7.3',
 };
 const pluginAuthors = {
   'mcp-server': 'thelinyue',
