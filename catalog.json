@@ -132,55 +132,6 @@
       }
     },
     {
-      "id": "mcp-server",
-      "name": "MCP Server",
-      "version": "0.2.0",
-      "description": "为 Mediary 提供 MCP 服务，支持 OpenClaw、Hermes 等 AI 客户端通过 /mcp 使用目录、订阅、下载和通知工具。",
-      "author": "thelinyue",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official/mcp-server",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.7/official",
-      "license": "MIT",
-      "api_version": 1,
-      "min_mediary_version": "1.0.3",
-      "permissions": [
-        "catalog:read",
-        "subscriptions:read",
-        "subscriptions:write",
-        "downloads:read",
-        "downloads:create",
-        "downloads:write",
-        "torrents:read",
-        "downloader:read",
-        "sites:read",
-        "filters:read",
-        "filters:write",
-        "logs:read",
-        "notifications:send"
-      ],
-      "artifacts": {
-        "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-linux-amd64.tar.gz",
-          "sha256": "ca544ce27381f0f241034b22d1147550db313e10f1b56a8262b3fc8a8a50eb92",
-          "size": 2349953
-        },
-        "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-linux-arm64.tar.gz",
-          "sha256": "58b1116e21375c7ae398a501506c51eac3850bdaff1faf02f23edea8fc89c53a",
-          "size": 2360386
-        },
-        "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-darwin-amd64.tar.gz",
-          "sha256": "85737da7b3958393de94a6a19fa576782091e063c3ad68a7b339e7b79a3f8bdd",
-          "size": 2243711
-        },
-        "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.7/mcp-server-v0.2.0-darwin-arm64.tar.gz",
-          "sha256": "2a1d0b5595ae64ee87ba72b85764a1bb4c288dddf762c6cf0513dce8071719c5",
-          "size": 2172045
-        }
-      }
-    },
-    {
       "id": "pansou",
       "name": "盘搜",
       "version": "0.1.3",

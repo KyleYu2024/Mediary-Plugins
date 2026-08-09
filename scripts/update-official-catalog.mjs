@@ -18,7 +18,6 @@ const pluginIds = [
   'pansou',
   'tmdb-trending',
   'subscribe-reminder',
-  'mcp-server',
   'bark-notify',
 ];
 const minimumMediaryVersions = {
@@ -26,11 +25,7 @@ const minimumMediaryVersions = {
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
-  'mcp-server': '1.0.3',
   'bark-notify': '1.7.3',
-};
-const pluginAuthors = {
-  'mcp-server': 'thelinyue',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
@@ -59,7 +54,7 @@ for (const id of pluginIds) {
     name: manifest.name,
     version: manifest.version,
     description: manifest.description,
-    author: pluginAuthors[id] ?? 'Mediary',
+    author: 'Mediary',
     homepage: `https://github.com/KyleYu2024/Mediary-Plugins/tree/${releaseTag}/official/${id}`,
     source: `https://github.com/KyleYu2024/Mediary-Plugins/tree/${releaseTag}/official`,
     license: 'MIT',
