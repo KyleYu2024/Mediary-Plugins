@@ -25,7 +25,7 @@ const minimumMediaryVersions = {
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
-  'bark-notify': '1.7.3',
+  'bark-notify': '1.7.4',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
