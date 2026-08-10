@@ -349,6 +349,7 @@ struct ResolvedMedia {
     vote_average: Option<f64>,
     description: Option<String>,
     expected_episodes: Option<i32>,
+    secondary_category: Option<String>,
 }
 
 async fn resolve_tmdb(
@@ -368,8 +369,84 @@ async fn resolve_tmdb(
             .unwrap_or("TMDB 未匹配")
             .to_string());
     }
-    serde_json::from_value(response.get("data").cloned().unwrap_or(response))
-        .map_err(|error| error.to_string())
+    let mut resolved: ResolvedMedia =
+        serde_json::from_value(response.get("data").cloned().unwrap_or(response))
+            .map_err(|error| error.to_string())?;
+    enrich_subscription_metadata(context, candidate, &mut resolved).await?;
+    Ok(resolved)
+}
+
+async fn enrich_subscription_metadata(
+    context: &PluginContext,
+    candidate: &Candidate,
+    resolved: &mut ResolvedMedia,
+) -> Result<(), String> {
+    let media_type = resolved_media_type(candidate, resolved).to_string();
+    let tmdb_id = resolved
+        .tmdb_id
+        .trim()
+        .parse::<i32>()
+        .map_err(|_| format!("TMDB ID 无效: {}", resolved.tmdb_id))?;
+    let details = plugin_api_get(
+        context,
+        &format!("/search/tmdb/details?id={tmdb_id}&media_type={media_type}"),
+    )
+    .await
+    .map_err(|error| format!("获取 TMDB 详情失败: {error}"))?;
+
+    apply_subscription_metadata(resolved, &media_type, &details);
+    if media_type == "tv" && resolved.expected_episodes.is_none() {
+        return Err("未能从 TMDB 详情获取第 1 季总集数，已跳过创建订阅".to_string());
+    }
+    Ok(())
+}
+
+fn apply_subscription_metadata(resolved: &mut ResolvedMedia, media_type: &str, details: &Value) {
+    resolved.secondary_category = json_text(details, "suggested_secondary_category");
+    if media_type != "tv" {
+        resolved.expected_episodes = None;
+        return;
+    }
+
+    let seasons = details
+        .get("seasons")
+        .and_then(Value::as_array)
+        .or_else(|| {
+            details
+                .get("details")
+                .and_then(|value| value.get("seasons"))
+                .and_then(Value::as_array)
+        });
+    let season_one_episodes = seasons.and_then(|items| {
+        items.iter().find_map(|season| {
+            let season_number = json_positive_i32(season.get("season_number"))?;
+            (season_number == 1)
+                .then(|| json_positive_i32(season.get("episode_count")))
+                .flatten()
+        })
+    });
+    resolved.expected_episodes = season_one_episodes.or_else(|| {
+        json_positive_i32(details.get("number_of_episodes")).or_else(|| {
+            details
+                .get("details")
+                .and_then(|value| json_positive_i32(value.get("number_of_episodes")))
+        })
+    });
+}
+
+fn json_positive_i32(value: Option<&Value>) -> Option<i32> {
+    value
+        .and_then(Value::as_i64)
+        .and_then(|value| i32::try_from(value).ok())
+        .filter(|value| *value > 0)
+}
+
+fn resolved_media_type<'a>(candidate: &'a Candidate, resolved: &'a ResolvedMedia) -> &'a str {
+    if resolved.media_type.trim().is_empty() {
+        candidate.media_type.as_str()
+    } else {
+        resolved.media_type.as_str()
+    }
 }
 
 async fn create_subscription(
@@ -377,11 +454,7 @@ async fn create_subscription(
     candidate: &Candidate,
     resolved: &ResolvedMedia,
 ) -> Result<(), String> {
-    let media_type = if resolved.media_type.trim().is_empty() {
-        candidate.media_type.as_str()
-    } else {
-        resolved.media_type.as_str()
-    };
+    let media_type = resolved_media_type(candidate, resolved);
     let body = json!({
         "tmdb_id": resolved.tmdb_id,
         "name": if resolved.title.trim().is_empty() { &candidate.title } else { &resolved.title },
@@ -393,6 +466,7 @@ async fn create_subscription(
         "vote_average": resolved.vote_average,
         "description": resolved.description,
         "expected_episodes": resolved.expected_episodes,
+        "secondary_category": resolved.secondary_category,
     });
     plugin_api(context, "/subscriptions", body)
         .await
@@ -423,11 +497,7 @@ fn existing_subscription_key(subscription: &Value) -> Option<String> {
 }
 
 fn resolved_subscription_key(candidate: &Candidate, resolved: &ResolvedMedia) -> String {
-    let media_type = if resolved.media_type.trim().is_empty() {
-        candidate.media_type.as_str()
-    } else {
-        resolved.media_type.as_str()
-    };
+    let media_type = resolved_media_type(candidate, resolved);
     subscription_key(
         media_type,
         resolved.tmdb_id.trim(),
@@ -759,10 +829,66 @@ mod tests {
             vote_average: None,
             description: None,
             expected_episodes: None,
+            secondary_category: None,
         };
         assert_eq!(
             existing_subscription_key(&existing),
             Some(resolved_subscription_key(&candidate, &resolved))
         );
+    }
+
+    #[test]
+    fn subscription_metadata_uses_season_one_count_and_secondary_category() {
+        let mut resolved = ResolvedMedia {
+            tmdb_id: "273114".to_string(),
+            title: "测试剧集".to_string(),
+            media_type: "tv".to_string(),
+            year: None,
+            poster_path: None,
+            backdrop_path: None,
+            vote_average: None,
+            description: None,
+            expected_episodes: Some(99),
+            secondary_category: None,
+        };
+        let details = json!({
+            "number_of_episodes": 84,
+            "seasons": [
+                {"season_number": 0, "episode_count": 4},
+                {"season_number": 1, "episode_count": 36},
+                {"season_number": 2, "episode_count": 48}
+            ],
+            "suggested_secondary_category": "国产剧"
+        });
+
+        apply_subscription_metadata(&mut resolved, "tv", &details);
+
+        assert_eq!(resolved.expected_episodes, Some(36));
+        assert_eq!(resolved.secondary_category.as_deref(), Some("国产剧"));
+    }
+
+    #[test]
+    fn subscription_metadata_falls_back_to_series_episode_count() {
+        let mut resolved = ResolvedMedia {
+            tmdb_id: "273114".to_string(),
+            title: "测试剧集".to_string(),
+            media_type: "tv".to_string(),
+            year: None,
+            poster_path: None,
+            backdrop_path: None,
+            vote_average: None,
+            description: None,
+            expected_episodes: None,
+            secondary_category: None,
+        };
+        let details = json!({
+            "details": {"number_of_episodes": 48, "seasons": []},
+            "suggested_secondary_category": null
+        });
+
+        apply_subscription_metadata(&mut resolved, "tv", &details);
+
+        assert_eq!(resolved.expected_episodes, Some(48));
+        assert_eq!(resolved.secondary_category, None);
     }
 }
