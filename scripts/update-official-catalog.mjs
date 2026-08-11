@@ -14,12 +14,14 @@ const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
 const pluginIds = [
+  '115-checkin',
   'maoyan-rank',
   'pansou',
   'tmdb-trending',
   'subscribe-reminder',
 ];
 const minimumMediaryVersions = {
+  '115-checkin': '1.8.0',
   'maoyan-rank': '0.7.7',
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
