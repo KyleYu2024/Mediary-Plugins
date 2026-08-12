@@ -1,0 +1,167 @@
+{
+  "api_version": 1,
+  "id": "hdhive",
+  "name": "HDHive",
+  "version": "0.4.4",
+  "description": "",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "resource_search": {
+    "source_id": -2,
+    "name": "HDHive",
+    "action": "resource_search",
+    "transfer_action": "transfer",
+    "timeout_seconds": 90
+  },
+  "external_actions": [
+    "oauth_callback"
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "integrations:run",
+    "notifications:send"
+  ],
+  "auto_grant_scopes": true,
+  "scheduled_actions": [
+    {
+      "action": "checkin",
+      "label": "自动签到",
+      "manual": false,
+      "cron_setting": "checkin_cron",
+      "timeout_seconds": 90
+    }
+  ],
+  "interactive_view": {
+    "title": "HDHive",
+    "eyebrow": "影巢资源",
+    "action": "search",
+    "trigger": {
+      "label": "搜索",
+      "icon": "search"
+    },
+    "submit": {
+      "label": "搜索",
+      "pending_label": "搜索中",
+      "icon": "search"
+    },
+    "fields": [
+      {
+        "key": "media_type",
+        "type": "select",
+        "compact": true,
+        "default": "multi",
+        "options": [
+          {
+            "label": "电影与剧集",
+            "value": "multi"
+          },
+          {
+            "label": "电影",
+            "value": "movie"
+          },
+          {
+            "label": "剧集",
+            "value": "tv"
+          }
+        ]
+      },
+      {
+        "key": "query",
+        "type": "text",
+        "placeholder": "输入电影、剧集名称或 TMDB ID",
+        "required": true,
+        "autofocus": true,
+        "icon": "search"
+      }
+    ],
+    "empty": {
+      "text": "输入名称或 TMDB ID 开始搜索",
+      "icon": "search"
+    },
+    "empty_result_text": "没有找到相关资源。",
+    "error_message": "HDHive 请求失败，请检查授权和网络。",
+    "auto_run": false
+  },
+  "settings_schema": {
+    "status_action": "status",
+    "sections": [
+      {
+        "title": "插件设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          }
+        ]
+      },
+      {
+        "title": "签到设置",
+        "fields": [
+          {
+            "key": "checkin_cron",
+            "type": "text",
+            "label": "签到时间",
+            "default": "0 9 * * *",
+            "placeholder": "0 9 * * *"
+          },
+          {
+            "key": "gambler_checkin",
+            "type": "switch",
+            "label": "使用赌狗签到",
+            "default": false,
+            "help": "开启后，定时签到和手动签到均使用赌狗模式"
+          }
+        ],
+        "actions": [
+          {
+            "type": "plugin_action",
+            "action": "checkin_manual",
+            "label": "手动签到",
+            "pending_label": "签到中",
+            "icon": "play"
+          }
+        ]
+      }
+    ]
+  },
+  "data_view": {
+    "title": "HDHive 状态",
+    "file": "data/status.json",
+    "summary": [
+      {
+        "key": "username",
+        "label": "用户"
+      },
+      {
+        "key": "points",
+        "label": "积分"
+      },
+      {
+        "key": "checked_in_today",
+        "label": "今日签到"
+      },
+      {
+        "key": "last_checkin_at",
+        "label": "最近签到"
+      }
+    ],
+    "fields": [
+      {
+        "key": "message",
+        "label": "结果",
+        "primary": true
+      },
+      {
+        "key": "points",
+        "label": "积分变化"
+      },
+      {
+        "key": "created_at",
+        "label": "时间"
+      }
+    ]
+  }
+}

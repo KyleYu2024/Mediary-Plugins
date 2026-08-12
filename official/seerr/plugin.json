@@ -1,0 +1,170 @@
+{
+  "api_version": 1,
+  "id": "seerr",
+  "name": "Seerr 订阅接入",
+  "version": "0.1.0",
+  "description": "将 Seerr 已批准的媒体请求转换为 Mediary 订阅，支持多季拆分、幂等和拒绝同步",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "external_actions": [
+    "webhook"
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "auto_grant_scopes": false,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "接入设置",
+        "alert": "Seerr Webhook 地址填写 /api/plugins/seerr/external/webhook，Authorization 填写 Bearer + Mediary API Token，仅勾选请求已批准、自动批准和拒绝事件。",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          },
+          {
+            "key": "sync_declines",
+            "type": "switch",
+            "label": "同步拒绝事件",
+            "help": "仅删除由本插件为该 Seerr 请求创建且尚未完成的订阅。",
+            "default": true
+          }
+        ]
+      },
+      {
+        "title": "订阅规则",
+        "fields": [
+          {
+            "key": "quality",
+            "type": "text",
+            "label": "默认质量",
+            "default": "all",
+            "placeholder": "all"
+          },
+          {
+            "key": "standard_resolution",
+            "type": "text",
+            "label": "普通请求分辨率",
+            "placeholder": "留空不限制"
+          },
+          {
+            "key": "four_k_resolution",
+            "type": "text",
+            "label": "4K 请求分辨率",
+            "default": "2160p",
+            "placeholder": "2160p"
+          },
+          {
+            "key": "include_rules",
+            "type": "text",
+            "label": "包含规则",
+            "placeholder": "选填"
+          },
+          {
+            "key": "exclude_rules",
+            "type": "text",
+            "label": "排除规则",
+            "placeholder": "选填"
+          },
+          {
+            "key": "save_path",
+            "type": "text",
+            "label": "保存目录",
+            "placeholder": "留空使用 Mediary 默认路径"
+          },
+          {
+            "key": "secondary_category",
+            "type": "text",
+            "label": "二级分类",
+            "placeholder": "留空自动识别"
+          }
+        ]
+      },
+      {
+        "title": "记录",
+        "fields": [
+          {
+            "key": "history_limit",
+            "type": "number",
+            "label": "保留记录数",
+            "default": 200,
+            "min": 20,
+            "max": 2000,
+            "step": 20
+          }
+        ]
+      }
+    ]
+  },
+  "interactive_view": {
+    "title": "Seerr 接入状态",
+    "eyebrow": "订阅前端",
+    "action": "status",
+    "trigger": {
+      "label": "查看状态",
+      "icon": "info"
+    },
+    "submit": {
+      "label": "刷新",
+      "pending_label": "查询中",
+      "icon": "refresh"
+    },
+    "auto_run": true,
+    "layout": "list",
+    "fields": [],
+    "empty": {
+      "text": "尚未收到 Seerr Webhook。",
+      "icon": "server"
+    },
+    "empty_result_text": "尚未收到 Seerr Webhook。",
+    "error_message": "无法读取 Seerr 插件状态。"
+  },
+  "data_view": {
+    "title": "Seerr 同步记录",
+    "file": "data/history.json",
+    "item_label": "Webhook 记录",
+    "summary": [
+      {
+        "key": "received",
+        "label": "已接收"
+      },
+      {
+        "key": "created",
+        "label": "已创建"
+      },
+      {
+        "key": "deleted",
+        "label": "已取消"
+      },
+      {
+        "key": "errors",
+        "label": "失败"
+      }
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "媒体",
+        "primary": true
+      },
+      {
+        "key": "event",
+        "label": "事件"
+      },
+      {
+        "key": "result",
+        "label": "结果"
+      },
+      {
+        "key": "received_at",
+        "label": "时间"
+      }
+    ]
+  }
+}
