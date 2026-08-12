@@ -15,6 +15,7 @@ const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
 const pluginIds = [
   '115-checkin',
+  'douban-coming-notice',
   'maoyan-rank',
   'pansou',
   'tmdb-trending',
@@ -23,6 +24,7 @@ const pluginIds = [
 ];
 const minimumMediaryVersions = {
   '115-checkin': '1.8.0',
+  'douban-coming-notice': '0.8.10',
   'maoyan-rank': '0.7.7',
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
@@ -59,7 +61,7 @@ for (const id of pluginIds) {
     author: 'Mediary',
     homepage: `https://github.com/KyleYu2024/Mediary-Plugins/tree/${releaseTag}/official/${id}`,
     source: `https://github.com/KyleYu2024/Mediary-Plugins/tree/${releaseTag}/official`,
-    license: 'MIT',
+    license: id === 'douban-coming-notice' ? 'GPL-3.0-only' : 'MIT',
     api_version: manifest.api_version ?? 1,
     min_mediary_version: minimumMediaryVersions[id],
     permissions: manifest.requested_scopes ?? [],
