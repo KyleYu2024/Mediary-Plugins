@@ -35,6 +35,10 @@ path = "src/bin/hdhive-plugin.rs"
 name = "seerr-plugin"
 path = "src/bin/seerr-plugin.rs"
 
+[[bin]]
+name = "115-checkin-plugin"
+path = "src/bin/open115-checkin-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 base64 = "0.22"
@@ -46,6 +50,7 @@ rand = "0.8"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha1 = "0.10"
 sha2 = "0.10"
 subtle = "2.6"
 tokio = { version = "1.38", features = ["macros", "net", "rt-multi-thread", "sync"] }
