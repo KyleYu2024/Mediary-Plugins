@@ -1,0 +1,40 @@
+{
+  "id": "douban-coming-notice",
+  "name": "豆瓣将映",
+  "version": "1.0.0",
+  "description": "监控豆瓣即将开播剧集，按想看热度与开播时间自动订阅并发送提醒",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.13/official/douban-coming-notice",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.13/official",
+  "license": "GPL-3.0-only",
+  "api_version": 1,
+  "min_mediary_version": "0.8.10",
+  "permissions": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write",
+    "notifications:send"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.13/douban-coming-notice-v1.0.0-linux-amd64.tar.gz",
+      "sha256": "29b97f2e3906627e4bd15bb4bd5f77747154730b8f5b61b1da9efc83a95bfb4e",
+      "size": 3121060
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.13/douban-coming-notice-v1.0.0-linux-arm64.tar.gz",
+      "sha256": "bae7e11a45b8934ea05283d9aa16ffc8e9ab9149181b3b118ac22f7babfa62b7",
+      "size": 3144159
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.13/douban-coming-notice-v1.0.0-darwin-amd64.tar.gz",
+      "sha256": "39132f2c654ebdefb35f327748a49f595de46abcf3bd4a2058dcdab97ea52d02",
+      "size": 2959224
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.13/douban-coming-notice-v1.0.0-darwin-arm64.tar.gz",
+      "sha256": "e2bd6ee6ea178273afa81907138642360a50cf48b072762e192376a84b8ec38d",
+      "size": 2846818
+    }
+  }
+}
