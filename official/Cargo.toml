@@ -28,10 +28,6 @@ name = "mcp-server-plugin"
 path = "src/bin/mcp-server-plugin.rs"
 
 [[bin]]
-name = "hdhive-plugin"
-path = "src/bin/hdhive-plugin.rs"
-
-[[bin]]
 name = "seerr-plugin"
 path = "src/bin/seerr-plugin.rs"
 

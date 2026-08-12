@@ -1,3 +1,4 @@
 .DS_Store
 official/target/
+official/hdhive/
 *.tar.gz
