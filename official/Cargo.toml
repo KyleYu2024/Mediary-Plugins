@@ -31,6 +31,10 @@ path = "src/bin/open115-checkin-plugin.rs"
 name = "douban-coming-notice-plugin"
 path = "src/bin/douban-coming-notice-plugin.rs"
 
+[[bin]]
+name = "douban-wish-plugin"
+path = "src/bin/douban-wish-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }

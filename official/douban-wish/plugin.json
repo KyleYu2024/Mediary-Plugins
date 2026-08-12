@@ -1,0 +1,151 @@
+{
+  "api_version": 1,
+  "id": "douban-wish",
+  "name": "豆瓣想看",
+  "version": "1.0.0",
+  "description": "同步一个或多个豆瓣用户最近标记的想看影视，识别 TMDB 后自动创建 Mediary 订阅",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "refresh",
+      "label": "立即同步",
+      "cron_setting": "cron",
+      "timeout_seconds": 1200
+    }
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "auto_grant_scopes": true,
+  "data_view": {
+    "title": "想看同步记录",
+    "file": "data/records.json",
+    "item_label": "处理记录",
+    "summary": [
+      {
+        "key": "total",
+        "label": "已处理"
+      },
+      {
+        "key": "subscribed",
+        "label": "新增订阅"
+      },
+      {
+        "key": "existing",
+        "label": "已有订阅"
+      },
+      {
+        "key": "last_result",
+        "label": "最近结果"
+      }
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "名称",
+        "primary": true
+      },
+      {
+        "key": "media_type",
+        "label": "类型"
+      },
+      {
+        "key": "season_label",
+        "label": "季"
+      },
+      {
+        "key": "douban_user",
+        "label": "豆瓣用户"
+      },
+      {
+        "key": "status",
+        "label": "结果"
+      },
+      {
+        "key": "updated_at",
+        "label": "处理时间"
+      }
+    ]
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "运行设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          },
+          {
+            "key": "cron",
+            "type": "text",
+            "label": "执行周期",
+            "default": "*/30 * * * *",
+            "placeholder": "5 位 cron 表达式",
+            "help": "使用 Mediary 所在时区。"
+          },
+          {
+            "key": "clear",
+            "type": "switch",
+            "label": "下次运行前清理历史记录",
+            "default": false,
+            "help": "开启后仅清理一次；再次清理前需先关闭并保存。"
+          }
+        ]
+      },
+      {
+        "title": "豆瓣账号",
+        "alert": "豆瓣用户的收藏必须公开。用户 ID 位于个人主页地址 /people/ 后，不是昵称。",
+        "fields": [
+          {
+            "key": "users",
+            "type": "text",
+            "label": "豆瓣用户 ID",
+            "placeholder": "user1,user2",
+            "help": "多个用户使用英文逗号、空格或换行分隔。",
+            "span": 2
+          },
+          {
+            "key": "days",
+            "type": "number",
+            "label": "同步最近天数",
+            "default": 7,
+            "min": 1,
+            "max": 3650,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "title": "内容过滤",
+        "fields": [
+          {
+            "key": "include",
+            "type": "text",
+            "label": "包含规则",
+            "placeholder": "可选，正则表达式",
+            "span": 2
+          },
+          {
+            "key": "exclude",
+            "type": "text",
+            "label": "排除规则",
+            "placeholder": "可选，正则表达式",
+            "span": 2
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "插件读取豆瓣公开 interests RSS 和公开条目元数据，不需要 Cookie。Mediary 当前插件 API 不提供 MoviePilot 的站点聚合搜索下载与豆瓣用户映射，因此本插件只创建订阅。",
+        "fields": []
+      }
+    ]
+  }
+}
