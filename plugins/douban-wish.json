@@ -1,0 +1,39 @@
+{
+  "id": "douban-wish",
+  "name": "豆瓣想看",
+  "version": "1.0.0",
+  "description": "同步一个或多个豆瓣用户最近标记的想看影视，识别 TMDB 后自动创建 Mediary 订阅",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.14/official/douban-wish",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.14/official",
+  "license": "GPL-3.0-only",
+  "api_version": 1,
+  "min_mediary_version": "0.7.7",
+  "permissions": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/douban-wish-v1.0.0-linux-amd64.tar.gz",
+      "sha256": "1e614398905cf791c0087afca1444d443d7331974f2623569fe2bc809a112fed",
+      "size": 3131892
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/douban-wish-v1.0.0-linux-arm64.tar.gz",
+      "sha256": "5bb718ced1ae506b8698bb4b7c8622f192153c8a124cbee8556c257ad5cfe612",
+      "size": 3152284
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/douban-wish-v1.0.0-darwin-amd64.tar.gz",
+      "sha256": "cd4d164542dbe9df75e50136c20f30f3b596c0ec2c86fad73c951e3f9c8c98b2",
+      "size": 2965445
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/douban-wish-v1.0.0-darwin-arm64.tar.gz",
+      "sha256": "75a0f2be651ff9d46c6031dd8998472890bdd4faafe47c7779fe0eacbdfa06a5",
+      "size": 2858147
+    }
+  }
+}
