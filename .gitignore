@@ -1,4 +1,6 @@
 .DS_Store
 official/target/
 official/hdhive/
+official/bark-notify/
+official/mcp-server/
 *.tar.gz
