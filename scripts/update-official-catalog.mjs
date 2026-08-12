@@ -19,6 +19,7 @@ const pluginIds = [
   'pansou',
   'tmdb-trending',
   'subscribe-reminder',
+  'seerr',
 ];
 const minimumMediaryVersions = {
   '115-checkin': '1.8.0',
@@ -26,6 +27,7 @@ const minimumMediaryVersions = {
   pansou: '0.7.7',
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
+  seerr: '1.9.0',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
