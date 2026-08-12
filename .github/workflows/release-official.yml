@@ -69,17 +69,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for plugin_id in 115-checkin maoyan-rank pansou tmdb-trending subscribe-reminder seerr; do
+          for plugin_id in 115-checkin douban-coming-notice maoyan-rank pansou tmdb-trending subscribe-reminder seerr; do
             version=$(node -p "JSON.parse(require('fs').readFileSync('official/${plugin_id}/plugin.json')).version")
             package_dir="package-${plugin_id}"
             mkdir -p "${package_dir}"
             cp "official/target/${TARGET}/release/${plugin_id}-plugin" "${package_dir}/plugin"
             cp "official/${plugin_id}/plugin.json" "${package_dir}/plugin.json"
+            package_files=(plugin plugin.json)
+            if [[ "${plugin_id}" == "douban-coming-notice" ]]; then
+              cp "official/${plugin_id}/LICENSE" "${package_dir}/LICENSE"
+              package_files+=(LICENSE)
+              cp "official/${plugin_id}/README.md" "${package_dir}/README.md"
+              package_files+=(README.md)
+            fi
             chmod 755 "${package_dir}/plugin"
             file "${package_dir}/plugin"
             tar -C "${package_dir}" -czf \
               "dist/${plugin_id}-v${version}-${PLATFORM}.tar.gz" \
-              plugin plugin.json
+              "${package_files[@]}"
           done
 
       - name: Upload platform packages

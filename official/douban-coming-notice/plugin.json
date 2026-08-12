@@ -1,0 +1,187 @@
+{
+  "api_version": 1,
+  "id": "douban-coming-notice",
+  "name": "豆瓣将映",
+  "version": "1.0.0",
+  "description": "监控豆瓣即将开播剧集，按想看热度与开播时间自动订阅并发送提醒",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "refresh",
+      "label": "立即运行",
+      "cron_setting": "cron",
+      "timeout_seconds": 1200
+    }
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "subscriptions:read",
+    "subscriptions:write",
+    "notifications:send"
+  ],
+  "auto_grant_scopes": true,
+  "data_view": {
+    "title": "将播处理记录",
+    "file": "data/records.json",
+    "item_label": "剧集记录",
+    "summary": [
+      {
+        "key": "total",
+        "label": "跟踪剧集"
+      },
+      {
+        "key": "subscribed",
+        "label": "已订阅"
+      },
+      {
+        "key": "notified",
+        "label": "已提醒"
+      },
+      {
+        "key": "last_result",
+        "label": "最近结果"
+      }
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "名称",
+        "primary": true
+      },
+      {
+        "key": "season_label",
+        "label": "季"
+      },
+      {
+        "key": "wish_count",
+        "label": "想看"
+      },
+      {
+        "key": "air_date",
+        "label": "开播日期"
+      },
+      {
+        "key": "status",
+        "label": "状态"
+      },
+      {
+        "key": "updated_at",
+        "label": "处理时间"
+      }
+    ]
+  },
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "运行设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "cron",
+            "type": "text",
+            "label": "执行周期",
+            "placeholder": "5 位 cron 表达式，默认每天 08:00",
+            "default": "0 8 * * *",
+            "help": "使用 Mediary 所在时区。"
+          },
+          {
+            "key": "clear",
+            "type": "switch",
+            "label": "下次运行前清理历史记录",
+            "default": false,
+            "help": "开启后只清理一次；需要再次清理时请先关闭并保存。"
+          }
+        ]
+      },
+      {
+        "title": "豆瓣数据",
+        "fields": [
+          {
+            "key": "rsshub",
+            "type": "text",
+            "label": "RSSHub 地址",
+            "default": "https://rsshub.ddsrem.com",
+            "placeholder": "https://rsshub.ddsrem.com",
+            "span": 2
+          },
+          {
+            "key": "sort_by",
+            "type": "select",
+            "label": "排序方式",
+            "default": "hot",
+            "options": [
+              {
+                "label": "热度",
+                "value": "hot"
+              },
+              {
+                "label": "时间",
+                "value": "time"
+              }
+            ]
+          },
+          {
+            "key": "count",
+            "type": "number",
+            "label": "请求数量",
+            "default": 10,
+            "min": 1,
+            "max": 100,
+            "step": 1
+          },
+          {
+            "key": "wish_count_threshold",
+            "type": "number",
+            "label": "最低想看人数",
+            "default": 5000,
+            "min": 0,
+            "max": 10000000,
+            "step": 100
+          }
+        ]
+      },
+      {
+        "title": "订阅与提醒",
+        "alert": "开播日期取自 TMDB 对应季；在提前订阅天数内自动创建订阅，在提醒窗口内只通知一次。",
+        "fields": [
+          {
+            "key": "advance_days",
+            "type": "number",
+            "label": "提前订阅天数",
+            "default": 7,
+            "min": 0,
+            "max": 365,
+            "step": 1
+          },
+          {
+            "key": "notify_before_air",
+            "type": "switch",
+            "label": "开播前提醒",
+            "default": true
+          },
+          {
+            "key": "notify_hours",
+            "type": "number",
+            "label": "提前提醒小时数",
+            "default": 24,
+            "min": 1,
+            "max": 720,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "数据来自用户配置的 RSSHub 实例，媒体识别和开播日期来自 Mediary 的 TMDB 配置。外部服务不可用时本次运行会失败，但不会覆盖已有历史。",
+        "fields": []
+      }
+    ]
+  }
+}

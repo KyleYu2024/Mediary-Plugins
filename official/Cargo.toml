@@ -27,11 +27,17 @@ path = "src/bin/seerr-plugin.rs"
 name = "115-checkin-plugin"
 path = "src/bin/open115-checkin-plugin.rs"
 
+[[bin]]
+name = "douban-coming-notice-plugin"
+path = "src/bin/douban-coming-notice-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }
 fs2 = "0.4"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+quick-xml = { version = "0.41", features = ["serialize"] }
+regex = "1.11"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha1 = "0.10"
