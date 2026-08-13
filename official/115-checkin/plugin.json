@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "115-checkin",
   "name": "115 签到",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "使用独立配置的 115 Cookie 执行安卓端积分签到，并可定时发送结果通知",
   "action_runtime": {
     "entrypoint": "./plugin"
