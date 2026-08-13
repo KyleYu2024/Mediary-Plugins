@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "description": "监控豆瓣即将开播剧集，按想看热度与开播时间自动订阅并发送提醒",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.16/official/douban-coming-notice",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.16/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.17/official/douban-coming-notice",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.17/official",
   "license": "GPL-3.0-only",
   "api_version": 1,
   "min_mediary_version": "0.8.10",
@@ -17,24 +17,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.16/douban-coming-notice-v1.0.0-linux-amd64.tar.gz",
-      "sha256": "3a2ffc1d8d57552c0520b352f5d9b46ecea2a4197c14f8bcac1bb61e990564af",
-      "size": 3121325
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/douban-coming-notice-v1.0.0-linux-amd64.tar.gz",
+      "sha256": "87e34f7f3be4909f7ffc4f8e71663ff92d9326a67f9dcb1b1831bd01b3d1e3a8",
+      "size": 3121327
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.16/douban-coming-notice-v1.0.0-linux-arm64.tar.gz",
-      "sha256": "c36a5924ef15db61017a253fdfa14fb0f50840b1e74ecfb4caf9c9fb7178555c",
-      "size": 3144112
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/douban-coming-notice-v1.0.0-linux-arm64.tar.gz",
+      "sha256": "6d0f337ac5bde8d68ebbc8e5889473c1138208fad27657bd391bfebe2f8fe60f",
+      "size": 3144115
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.16/douban-coming-notice-v1.0.0-darwin-amd64.tar.gz",
-      "sha256": "87de6ab2957d1fa96f3c3db48a1d06079a58ec9ce50d6361cdaaae2cfb904965",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/douban-coming-notice-v1.0.0-darwin-amd64.tar.gz",
+      "sha256": "66cade354dba463fb05b37cad34b9199407481b4ffd13f9d80e04716825482cc",
       "size": 2959213
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.16/douban-coming-notice-v1.0.0-darwin-arm64.tar.gz",
-      "sha256": "8bcca34efcb27e510d1ded18416f96969bef4c86321a961839ba06e78af8bb29",
-      "size": 2846726
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/douban-coming-notice-v1.0.0-darwin-arm64.tar.gz",
+      "sha256": "05ce9725b83824583d7bd5c7b572dc7304682e5117c4f8b37360937bc77953e8",
+      "size": 2846739
     }
   }
 }
