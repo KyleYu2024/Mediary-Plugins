@@ -21,7 +21,7 @@ const ANDROID_USER_AGENT: &str = "smzdm_android_V10.4.1 rv:841 (22021211RC;Andro
 const ANDROID_SIGN_KEY: &str = "apr1$AwP!wRRT$gJ/q.X24poeBInlUJC";
 const ANDROID_SK: &str = "ierkM0OZZbsuBKLoAgQ6OJneLMXBQXmzX+LXkNTuKch8Ui2jGlahuFyWIzBiDq/L";
 const MAX_HISTORY_ITEMS: usize = 200;
-const MEDIARY_NOTIFICATION_IMAGE_URL: &str = "https://img.andp.cc/icons/upload/Mediary.png";
+const NOTIFICATION_IMAGE_URL: &str = "https://raw.githubusercontent.com/KyleYu2024/Mediary-Plugins/main/official/smzdm-checkin/assets/notification.png";
 
 #[derive(Deserialize)]
 struct Settings {
@@ -659,7 +659,7 @@ async fn send_notification(
         .json(&json!({
             "title": title,
             "content": content,
-            "image_url": MEDIARY_NOTIFICATION_IMAGE_URL,
+            "image_url": NOTIFICATION_IMAGE_URL,
         }))
         .send()
         .await
@@ -814,6 +814,14 @@ mod tests {
             json!(["cookiecloud:read", "notifications:send"])
         );
         assert_eq!(manifest["cookiecloud_domains"], json!(["smzdm.com"]));
+    }
+
+    #[test]
+    fn notification_image_is_the_project_asset() {
+        assert!(
+            NOTIFICATION_IMAGE_URL.ends_with("/official/smzdm-checkin/assets/notification.png")
+        );
+        assert!(Path::new("smzdm-checkin/assets/notification.png").is_file());
     }
 
     #[test]
