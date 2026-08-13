@@ -1,11 +1,11 @@
 {
   "id": "115-checkin",
   "name": "115 签到",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "使用独立配置的 115 Cookie 执行安卓端积分签到，并可定时发送结果通知",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.14/official/115-checkin",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.14/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.15/official/115-checkin",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.15/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.8.0",
@@ -14,24 +14,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/115-checkin-v0.1.1-linux-amd64.tar.gz",
-      "sha256": "b1f966aca2563fb0dd5e9bfb527de7de82670aaab7eedfb4bfbccee8a0c8ca48",
-      "size": 2279783
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/115-checkin-v0.1.2-linux-amd64.tar.gz",
+      "sha256": "b4220d4c444dbde741c43f4b676aba504c416e345cac48bddca05d55b32054d7",
+      "size": 2280331
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/115-checkin-v0.1.1-linux-arm64.tar.gz",
-      "sha256": "af370599944633cae1ebc5a1e1d767deee4b49c4bd2e39b783576000559fba93",
-      "size": 2295634
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/115-checkin-v0.1.2-linux-arm64.tar.gz",
+      "sha256": "63dbd7541092cd0525fe4ceb168ff2d73090304e3ac1182c9b3d694a9adc110a",
+      "size": 2293058
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/115-checkin-v0.1.1-darwin-amd64.tar.gz",
-      "sha256": "d52db8d96aeca01b92ccf176b3ed28c445a6e79d38cce006b710464b26adf25d",
-      "size": 2171359
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/115-checkin-v0.1.2-darwin-amd64.tar.gz",
+      "sha256": "08f2ddcf9a199445d7667d3b08f70f4aa7a5f27c7b81c4d8d38e4a2a98f3dec8",
+      "size": 2171737
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.14/115-checkin-v0.1.1-darwin-arm64.tar.gz",
-      "sha256": "50e13af75cfdbf9aa1b8bd36cb382c9c68c769184251c28e6c766af149382183",
-      "size": 2103205
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/115-checkin-v0.1.2-darwin-arm64.tar.gz",
+      "sha256": "ff69b6d8095194d90d2b7c27636788ec887a950c186a61e5925af3cd64ac120a",
+      "size": 2103668
     }
   }
 }

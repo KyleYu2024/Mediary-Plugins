@@ -1,0 +1,38 @@
+{
+  "id": "smzdm-checkin",
+  "name": "什么值得买签到",
+  "version": "0.1.1",
+  "description": "使用什么值得买 App 接口执行每日签到，支持多账号、协议回退和失效通知",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.15/official/smzdm-checkin",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.15/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "1.9.4",
+  "permissions": [
+    "cookiecloud:read",
+    "notifications:send"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/smzdm-checkin-v0.1.1-linux-amd64.tar.gz",
+      "sha256": "9df0cc431357ccff78dd530a5faee08cda430b79712a2056962cad576ded634b",
+      "size": 2176189
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/smzdm-checkin-v0.1.1-linux-arm64.tar.gz",
+      "sha256": "fb1597bf123dbc43308bfaceea0dbe87a37b89cb593f0cf9e7c2272d49f241dd",
+      "size": 2166360
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/smzdm-checkin-v0.1.1-darwin-amd64.tar.gz",
+      "sha256": "7597928ed1852d404317a13939a5cb49ffdaadc859d818462f6ccd6076318211",
+      "size": 2071549
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.15/smzdm-checkin-v0.1.1-darwin-arm64.tar.gz",
+      "sha256": "21a7b5ca3ff71fc45df0133b770c5045f894d9fc293289710eb6944fbfbcdc11",
+      "size": 1980462
+    }
+  }
+}
