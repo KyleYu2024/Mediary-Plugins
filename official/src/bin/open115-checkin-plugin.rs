@@ -12,7 +12,7 @@ use std::{
 };
 
 const CHECKIN_URL: &str = "https://proapi.115.com/android/2.0/user/points_sign";
-const MEDIARY_NOTIFICATION_IMAGE_URL: &str = "https://img.andp.cc/icons/upload/Mediary.png";
+const NOTIFICATION_IMAGE_URL: &str = "https://raw.githubusercontent.com/KyleYu2024/Mediary-Plugins/main/official/115-checkin/assets/notification.jpg";
 const ANDROID_APP_VERSION: &str = "37.2.6";
 const USER_AGENT: &str = "115disk/37.2.6 (Android 15; mobile)";
 const MAX_HISTORY_ITEMS: usize = 100;
@@ -353,7 +353,7 @@ async fn send_notification(
                 CheckinStatus::AlreadyDone => "115 签到结果",
             },
             "content": outcome.message,
-            "image_url": MEDIARY_NOTIFICATION_IMAGE_URL,
+            "image_url": NOTIFICATION_IMAGE_URL,
         }),
     )
     .await
@@ -365,7 +365,7 @@ async fn send_failure_notification(context: &PluginContext, error: &str) -> Resu
         &json!({
             "title": "115 签到失败",
             "content": error,
-            "image_url": MEDIARY_NOTIFICATION_IMAGE_URL,
+            "image_url": NOTIFICATION_IMAGE_URL,
         }),
     )
     .await
