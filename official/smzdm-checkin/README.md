@@ -11,7 +11,8 @@ iOS 直签协议。重复执行不会重复领取签到奖励。
 3. 可选填写一个账号的手工 Cookie，作为 CookieCloud 不可用时的兜底。
 4. 设置 cron，默认 `23 7 * * *` 表示每天 07:23 执行，然后启用插件。
 
-签到通知未配置专属头图，统一使用 Mediary 内置通知图。
+签到成功、已签到和失败通知默认使用
+[什么值得买通知图](assets/notification.png)。
 
 Cookie 属于账号凭据，不要将它发到 issue、日志或截图中。插件只获准读取 CookieCloud 中
 `smzdm.com` 域名的 Cookie，不会接触 CookieCloud 密钥，也不会把 Cookie、token、用户 ID
