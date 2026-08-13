@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "douban-wish",
   "name": "豆瓣想看",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "同步一个或多个豆瓣用户最近标记的想看影视，识别 TMDB 后自动创建 Mediary 订阅",
   "action_runtime": {
     "entrypoint": "./plugin"
@@ -143,7 +143,7 @@
       },
       {
         "title": "说明",
-        "alert": "插件读取豆瓣公开 interests RSS 和公开条目元数据，不需要 Cookie。Mediary 当前插件 API 不提供 MoviePilot 的站点聚合搜索下载与豆瓣用户映射，因此本插件只创建订阅。",
+        "alert": "插件读取豆瓣公开 interests RSS 和公开条目元数据，不需要 Cookie。当前不执行站点聚合搜索下载或豆瓣用户映射，仅通过 Mediary 创建订阅。",
         "fields": []
       }
     ]
