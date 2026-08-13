@@ -2,8 +2,8 @@
   "api_version": 1,
   "id": "smzdm-checkin",
   "name": "什么值得买签到",
-  "version": "0.1.1",
-  "description": "使用什么值得买 App 接口执行每日签到，支持多账号、协议回退和失效通知",
+  "version": "0.1.2",
+  "description": "使用什么值得买 App 接口为单个账号执行每日签到，支持协议回退和失效通知",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -50,7 +50,7 @@
             "type": "text",
             "label": "手工 Cookie（可选兜底）",
             "placeholder": "sess=...; device_id=...",
-            "help": "CookieCloud 未配置或未找到 Cookie 时使用；多账号每行一个。保存后会脱敏显示。",
+            "help": "CookieCloud 未配置或未找到 Cookie 时使用；仅支持一个账号。保存后会脱敏显示。",
             "span": 2
           },
           {
@@ -79,7 +79,7 @@
   "data_view": {
     "title": "什么值得买签到记录",
     "file": "data/history.json",
-    "item_label": "账号记录",
+    "item_label": "签到记录",
     "summary": [
       {
         "key": "runs",
@@ -87,11 +87,11 @@
       },
       {
         "key": "account_attempts",
-        "label": "账号签到次数"
+        "label": "签到次数"
       },
       {
         "key": "successes",
-        "label": "成功账号次数"
+        "label": "成功次数"
       },
       {
         "key": "last_result",
@@ -104,13 +104,9 @@
     ],
     "fields": [
       {
-        "key": "account",
-        "label": "账号",
-        "primary": true
-      },
-      {
         "key": "result",
-        "label": "结果"
+        "label": "结果",
+        "primary": true
       },
       {
         "key": "points",

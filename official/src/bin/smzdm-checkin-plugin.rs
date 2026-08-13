@@ -145,14 +145,14 @@ async fn run() -> Result<(), String> {
     }
 
     let context = PluginContext::from_env()?;
-    let cookies = match resolve_cookies(&context).await {
-        Ok(cookies) => cookies,
+    let credential = match resolve_cookie(&context).await {
+        Ok(credential) => credential,
         Err(error) => {
             if context.settings.notify
                 && let Err(notify_error) = send_notification(
                     &context,
-                    "什么值得买签到异常",
-                    &format!("签到尚未开始：{error}"),
+                    "什么值得买签到失败",
+                    &format!("签到失败：{error}"),
                 )
                 .await
             {
@@ -163,94 +163,70 @@ async fn run() -> Result<(), String> {
     };
     let history_path = context.data_dir.join("history.json");
     let mut history = load_json::<History>(&history_path);
-    let mut notices = Vec::with_capacity(cookies.len());
-    let mut successes = 0;
-    let mut already_done = 0;
-
-    for (index, credential) in cookies.iter().enumerate() {
-        let account = format!("账号 {}", index + 1);
-        match perform_checkin(&context, &credential.cookie).await {
-            Ok(outcome) => {
-                successes += 1;
-                if outcome.status == CheckinStatus::AlreadyDone {
-                    already_done += 1;
-                }
-                let result = format!("{account}：{}", outcome.message);
-                notices.push(result.clone());
-                record_account(
-                    &mut history,
-                    &account,
-                    &result,
-                    outcome.points,
-                    outcome.continuous_day,
-                    outcome.protocol,
-                    credential.source,
-                    &context.trigger,
-                    true,
-                );
+    match perform_checkin(&context, &credential.cookie).await {
+        Ok(outcome) => {
+            let result = outcome.message.clone();
+            record_account(
+                &mut history,
+                "当前账号",
+                &result,
+                outcome.points,
+                outcome.continuous_day,
+                outcome.protocol,
+                credential.source,
+                &context.trigger,
+                true,
+            );
+            finish_history_run(&mut history, &result);
+            write_json(&history_path, &history)?;
+            if context.settings.notify
+                && let Err(error) = send_notification(
+                    &context,
+                    notification_title(&outcome.status),
+                    &outcome.message,
+                )
+                .await
+            {
+                eprintln!("什么值得买签到通知发送失败: {error}");
             }
-            Err(error) => {
-                let result = format!("{account}：签到失败，{}", error.message);
-                notices.push(result.clone());
-                record_account(
-                    &mut history,
-                    &account,
-                    &result,
-                    None,
-                    None,
-                    "-",
-                    credential.source,
-                    &context.trigger,
-                    false,
-                );
+            println!(
+                "{}",
+                json!({
+                    "notice": outcome.message,
+                    "report": {
+                        "checked_in": outcome.status == CheckinStatus::Success,
+                        "already_done": outcome.status == CheckinStatus::AlreadyDone,
+                        "points": outcome.points,
+                        "continuous_day": outcome.continuous_day,
+                    }
+                })
+            );
+            Ok(())
+        }
+        Err(error) => {
+            let result = format!("签到失败：{}", error.message);
+            record_account(
+                &mut history,
+                "当前账号",
+                &result,
+                None,
+                None,
+                "-",
+                credential.source,
+                &context.trigger,
+                false,
+            );
+            finish_history_run(&mut history, &result);
+            write_json(&history_path, &history)?;
+            if context.settings.notify
+                && let Err(notification_error) =
+                    send_notification(&context, "什么值得买签到失败", &result).await
+            {
+                eprintln!("什么值得买签到通知发送失败: {notification_error}");
             }
+            Err(result)
         }
     }
-
-    history.summary.runs += 1;
-    let total = cookies.len();
-    let mut summary = format!(
-        "共 {total} 个账号，成功 {successes} 个，失败 {} 个",
-        total - successes
-    );
-    if already_done > 0 {
-        summary.push_str(&format!("（其中今日已签到 {already_done} 个）"));
-    }
-    let now = Local::now().to_rfc3339();
-    history.updated_at = now.clone();
-    history.summary.last_result = summary.clone();
-    history.summary.last_run_at = now;
-    write_json(&history_path, &history)?;
-
-    if context.settings.notify {
-        let title = if successes == total {
-            "什么值得买签到完成"
-        } else {
-            "什么值得买签到异常"
-        };
-        let content = format!("{summary}\n{}", notices.join("\n"));
-        if let Err(error) = send_notification(&context, title, &content).await {
-            eprintln!("什么值得买签到通知发送失败: {error}");
-        }
-    }
-
-    if successes != total {
-        return Err(format!("什么值得买签到未全部成功：{summary}"));
-    }
-
-    println!(
-        "{}",
-        json!({
-            "notice": format!("什么值得买签到完成：{summary}"),
-            "report": {
-                "accounts": total,
-                "successes": successes,
-                "failures": total - successes,
-                "already_done": already_done,
-            }
-        })
-    );
-    Ok(())
 }
 
 impl PluginContext {
@@ -283,35 +259,28 @@ impl PluginContext {
     }
 }
 
-async fn resolve_cookies(context: &PluginContext) -> Result<Vec<CookieCredential>, String> {
+async fn resolve_cookie(context: &PluginContext) -> Result<CookieCredential, String> {
     let manual = if context.settings.cookies.trim().is_empty() {
-        Vec::new()
+        None
     } else {
-        split_cookies(&context.settings.cookies)?
-            .into_iter()
-            .map(|cookie| CookieCredential {
-                cookie: cookie.to_string(),
-                source: "手工配置",
-            })
-            .collect()
+        Some(CookieCredential {
+            cookie: parse_manual_cookie(&context.settings.cookies)?.to_string(),
+            source: "手工配置",
+        })
     };
 
     if !context.settings.use_cookiecloud {
-        return if manual.is_empty() {
-            Err("请先在插件设置中填写什么值得买 Cookie".to_string())
-        } else {
-            Ok(manual)
-        };
+        return manual.ok_or_else(|| "请先在插件设置中填写什么值得买 Cookie".to_string());
     }
 
     match fetch_cookiecloud_cookie(context).await {
-        Ok(cookie) => Ok(vec![CookieCredential {
+        Ok(cookie) => Ok(CookieCredential {
             cookie,
             source: "CookieCloud",
-        }]),
-        Err(error) if !manual.is_empty() => {
+        }),
+        Err(error) if manual.is_some() => {
             eprintln!("CookieCloud Cookie 不可用，已使用手工配置兜底: {error}");
-            Ok(manual)
+            Ok(manual.expect("已确认存在手工 Cookie"))
         }
         Err(error) => Err(format!("CookieCloud Cookie 不可用：{error}")),
     }
@@ -630,18 +599,22 @@ fn is_already_done(message: &str) -> bool {
         .any(|marker| message.contains(marker))
 }
 
-fn split_cookies(raw: &str) -> Result<Vec<&str>, String> {
-    let cookies = raw
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
-    if cookies.is_empty() {
-        Err("请先在插件设置中填写什么值得买 Cookie".to_string())
-    } else if cookies.len() > 20 {
-        Err("单个插件实例最多支持 20 个什么值得买账号".to_string())
+fn parse_manual_cookie(raw: &str) -> Result<&str, String> {
+    let mut cookies = raw.lines().map(str::trim).filter(|line| !line.is_empty());
+    let cookie = cookies
+        .next()
+        .ok_or_else(|| "请先在插件设置中填写什么值得买 Cookie".to_string())?;
+    if cookies.next().is_some() {
+        Err("什么值得买签到插件只支持一个账号，请仅保留一个 Cookie".to_string())
     } else {
-        Ok(cookies)
+        Ok(cookie)
+    }
+}
+
+fn notification_title(status: &CheckinStatus) -> &'static str {
+    match status {
+        CheckinStatus::Success => "什么值得买签到成功",
+        CheckinStatus::AlreadyDone => "什么值得买签到结果",
     }
 }
 
@@ -726,6 +699,14 @@ fn record_account(
         finished_at,
     });
     history.items.truncate(MAX_HISTORY_ITEMS);
+}
+
+fn finish_history_run(history: &mut History, result: &str) {
+    history.summary.runs += 1;
+    let now = Local::now().to_rfc3339();
+    history.updated_at = now.clone();
+    history.summary.last_result = result.to_string();
+    history.summary.last_run_at = now;
 }
 
 fn load_json<T: DeserializeOwned + Default>(path: &Path) -> T {
@@ -880,9 +861,40 @@ mod tests {
     }
 
     #[test]
-    fn splits_multiple_accounts_without_splitting_cookie_fields() {
-        let cookies = split_cookies("a=1; b=2\n\nc=3; d=4\r\n").unwrap();
-        assert_eq!(cookies, vec!["a=1; b=2", "c=3; d=4"]);
+    fn accepts_one_manual_account_without_splitting_cookie_fields() {
+        assert_eq!(parse_manual_cookie("a=1; b=2\n").unwrap(), "a=1; b=2");
+    }
+
+    #[test]
+    fn rejects_multiple_manual_accounts() {
+        let error = parse_manual_cookie("a=1; b=2\n\nc=3; d=4\r\n").unwrap_err();
+        assert!(error.contains("只支持一个账号"));
+    }
+
+    #[test]
+    fn uses_single_account_notification_copy() {
+        assert_eq!(
+            notification_title(&CheckinStatus::Success),
+            "什么值得买签到成功"
+        );
+        assert_eq!(
+            notification_title(&CheckinStatus::AlreadyDone),
+            "什么值得买签到结果"
+        );
+        let outcome = parse_checkin_response(
+            &json!({
+                "error_code": "0",
+                "error_msg": "签到成功",
+                "data": { "cpadd": "2", "daily_num": 18 }
+            }),
+            "Android",
+        )
+        .unwrap();
+        assert_eq!(
+            outcome.message,
+            "签到成功，本次获得 2 积分，已连续签到 18 天"
+        );
+        assert!(!outcome.message.contains("账号"));
     }
 
     #[test]
