@@ -127,6 +127,7 @@ sample-plugin/
 | `auto_grant_scopes` | 否 | 是否自动授予声明权限，默认 `false` |
 | `settings_schema` | 否 | 插件配置表单 |
 | `secret_fields` | 否 | 需要在管理 API/UI 中脱敏的设置键 |
+| `cookiecloud_domains` | 否 | `cookiecloud:read` 可读取的 Cookie 域名白名单；必须与该权限同时声明 |
 | `data_view` | 否 | 数据文件展示定义 |
 | `interactive_view` | 否 | 宿主渲染的交互视图 |
 | `events` | 否 | Webhook 事件名，`"*"` 表示全部 |
@@ -289,6 +290,10 @@ URL 基于 `MEDIARY_PLUGIN_API_URL` 拼接，不要写死主机、端口或再�
 | `torrents:read` | `GET /plugin/torrents` | 搜索或读取最新种子 |
 | `downloads:create` | `POST /plugin/downloads` | 添加原始下载、磁力或 `mteam://` 任务 |
 | `downloader:read` | `GET /plugin/downloader/torrents` | 读取下载器完整任务状态 |
+| `cookiecloud:read` | `GET /plugin/cookiecloud?domain=<域名>` | 读取清单 `cookiecloud_domains` 允许域名及其子域可携带的 Cookie |
+
+插件通过 `POST /plugin/notifications` 发送通知时可以传入 HTTPS `image_url`。未传、留空或
+使用非 HTTPS 地址时，宿主会自动改用 Mediary 内置通知图。
 
 `GET /plugin/torrents` 支持 `keyword`、逗号分隔的 `site_ids`、1 到 1000 的 `limit` 和
 `free_only`。返回的种子项包括标题、站点、大小、下载 URL、人数、促销、Tracker 元数据和

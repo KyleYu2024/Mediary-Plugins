@@ -1,27 +1,31 @@
 {
   "api_version": 1,
-  "id": "115-checkin",
-  "name": "115 签到",
-  "version": "0.1.2",
-  "description": "使用独立配置的 115 Cookie 执行安卓端积分签到，并可定时发送结果通知",
+  "id": "smzdm-checkin",
+  "name": "什么值得买签到",
+  "version": "0.1.1",
+  "description": "使用什么值得买 App 接口执行每日签到，支持多账号、协议回退和失效通知",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
   "scheduled_actions": [
     {
       "action": "checkin",
-      "label": "手动签到",
+      "label": "立即签到",
       "manual": true,
       "cron_setting": "cron",
-      "timeout_seconds": 60
+      "timeout_seconds": 120
     }
   ],
   "requested_scopes": [
+    "cookiecloud:read",
     "notifications:send"
+  ],
+  "cookiecloud_domains": [
+    "smzdm.com"
   ],
   "auto_grant_scopes": true,
   "secret_fields": [
-    "cookie"
+    "cookies"
   ],
   "settings_schema": {
     "sections": [
@@ -35,19 +39,26 @@
             "default": false
           },
           {
-            "key": "cookie",
+            "key": "use_cookiecloud",
+            "type": "switch",
+            "label": "优先使用 Mediary CookieCloud",
+            "default": true,
+            "help": "每次签到前从 Mediary 已配置的 CookieCloud 读取 smzdm.com 最新 Cookie。"
+          },
+          {
+            "key": "cookies",
             "type": "text",
-            "label": "115 Cookie",
-            "placeholder": "UID=...; CID=...; SEID=...",
-            "help": "从已登录的 115 Web 请求中复制完整 Cookie；保存后会脱敏显示。",
+            "label": "手工 Cookie（可选兜底）",
+            "placeholder": "sess=...; device_id=...",
+            "help": "CookieCloud 未配置或未找到 Cookie 时使用；多账号每行一个。保存后会脱敏显示。",
             "span": 2
           },
           {
             "key": "cron",
             "type": "text",
             "label": "签到时间",
-            "default": "5 0 * * *",
-            "placeholder": "5 0 * * *",
+            "default": "23 7 * * *",
+            "placeholder": "23 7 * * *",
             "help": "5 段 cron 表达式，按 Mediary 所在时区执行。"
           },
           {
@@ -60,23 +71,27 @@
       },
       {
         "title": "说明",
-        "alert": "签到使用 115 安卓端的每日积分签到接口。Cookie 仅发送给 115，不会写入运行记录或通知。",
+        "alert": "插件只执行每日签到，不会自动点赞、收藏、评论、抽奖或申请众测。遇到 Cookie 失效、验证码、风控或接口协议变化时会明确报错并通知。",
         "fields": []
       }
     ]
   },
   "data_view": {
-    "title": "115 签到记录",
+    "title": "什么值得买签到记录",
     "file": "data/history.json",
-    "item_label": "运行记录",
+    "item_label": "账号记录",
     "summary": [
       {
         "key": "runs",
         "label": "运行次数"
       },
       {
+        "key": "account_attempts",
+        "label": "账号签到次数"
+      },
+      {
         "key": "successes",
-        "label": "成功次数"
+        "label": "成功账号次数"
       },
       {
         "key": "last_result",
@@ -89,21 +104,29 @@
     ],
     "fields": [
       {
-        "key": "result",
-        "label": "结果",
+        "key": "account",
+        "label": "账号",
         "primary": true
       },
       {
+        "key": "result",
+        "label": "结果"
+      },
+      {
         "key": "points",
-        "label": "签到积分"
+        "label": "本次积分"
       },
       {
         "key": "continuous_day",
         "label": "连续签到天数"
       },
       {
-        "key": "trigger",
-        "label": "触发方式"
+        "key": "protocol",
+        "label": "签到协议"
+      },
+      {
+        "key": "source",
+        "label": "Cookie 来源"
       },
       {
         "key": "finished_at",

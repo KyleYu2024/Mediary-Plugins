@@ -15,6 +15,7 @@ const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
 const pluginIds = [
   '115-checkin',
+  'smzdm-checkin',
   'douban-coming-notice',
   'douban-wish',
   'maoyan-rank',
@@ -25,6 +26,7 @@ const pluginIds = [
 ];
 const minimumMediaryVersions = {
   '115-checkin': '1.8.0',
+  'smzdm-checkin': '1.9.4',
   'douban-coming-notice': '0.8.10',
   'douban-wish': '0.7.7',
   'maoyan-rank': '0.7.7',
