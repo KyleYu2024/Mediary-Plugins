@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "description": "将 Seerr 已批准的媒体请求转换为 Mediary 订阅，支持多季拆分、幂等和拒绝同步",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.17/official/seerr",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.17/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.18/official/seerr",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.18/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.9.0",
@@ -16,24 +16,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/seerr-v0.1.0-linux-amd64.tar.gz",
-      "sha256": "db2813380bfef5a23c76a769e46654076cd32babed5b3d5b8f78907c4cecb0ff",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.18/seerr-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "483778722b9f8e539786c53507ee405a9bf4c8775eb5184b9858e054ba08ff5d",
       "size": 2265846
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/seerr-v0.1.0-linux-arm64.tar.gz",
-      "sha256": "c635f31774e28f706dcf829c478855efcb3ec04b90b0f5b9d8d4ed462c0de074",
-      "size": 2255076
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.18/seerr-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "b14364c38c09925fdaf99d8d61ba0053516033d0a60c0e038f2dae72a55bdac8",
+      "size": 2255080
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/seerr-v0.1.0-darwin-amd64.tar.gz",
-      "sha256": "804148d6e17f513ee62e2f4d66331ae4ac0427a8c647fc3d18f12e9292377b2e",
-      "size": 2156993
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.18/seerr-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "e1741b3ef996f367e2cde39707d073fd3a6f0d654a10ec38569d0d323105705c",
+      "size": 2156992
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.17/seerr-v0.1.0-darwin-arm64.tar.gz",
-      "sha256": "6e1701f624e10ced6f4e39593cdb5433d5e05f56888736216a7779aaeba9da01",
-      "size": 2063797
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.18/seerr-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "d87b18cae9b8bd14352629b291fc820379f5f5b0cd6aa3d5a4ea71b3aa1138e9",
+      "size": 2063799
     }
   }
 }
