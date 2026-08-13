@@ -991,7 +991,7 @@ mod tests {
         let manifest: Value =
             serde_json::from_str(include_str!("../../douban-wish/plugin.json")).unwrap();
         assert_eq!(manifest["id"], "douban-wish");
-        assert_eq!(manifest["version"], "1.0.0");
+        assert_eq!(manifest["version"], "1.0.1");
         assert_eq!(
             manifest["requested_scopes"],
             json!(["catalog:read", "subscriptions:read", "subscriptions:write"])
