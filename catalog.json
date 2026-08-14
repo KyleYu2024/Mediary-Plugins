@@ -7,8 +7,8 @@
       "version": "0.1.3",
       "description": "使用独立配置的 115 Cookie 执行安卓端积分签到，并可定时发送结果通知",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/115-checkin",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/115-checkin",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "1.8.0",
@@ -17,23 +17,23 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/115-checkin-v0.1.3-linux-amd64.tar.gz",
-          "sha256": "526cba326399fab9075ad94abd2f5a3128c98b1bea010afcfc4d6466d6cfd010",
-          "size": 2280332
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/115-checkin-v0.1.3-linux-amd64.tar.gz",
+          "sha256": "6e0b2bf2f5bd4d30ed2aa5ea998ca1f89118d58a2fe78a0c103979b6670c3aa9",
+          "size": 2280324
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/115-checkin-v0.1.3-linux-arm64.tar.gz",
-          "sha256": "e3de69b3170d5b7daf178425f9257abe00fec8753a6c14078bafcfec43b788f9",
-          "size": 2297145
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/115-checkin-v0.1.3-linux-arm64.tar.gz",
+          "sha256": "0ea74da1ad45ece25087af85beaa5a2cd9e4bf78da3e2c866c51fc2381559115",
+          "size": 2297146
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/115-checkin-v0.1.3-darwin-amd64.tar.gz",
-          "sha256": "0ed6fb755659e91fa03746d4fb04638e1954fa121b66bd10a9e3d82c445b24cc",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/115-checkin-v0.1.3-darwin-amd64.tar.gz",
+          "sha256": "38dc4ae12b236fe99d5f2499dfab65212c04538f14d7a7bba772b410ca8fb929",
           "size": 2171889
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/115-checkin-v0.1.3-darwin-arm64.tar.gz",
-          "sha256": "be493dd62fa04427ee01dee1df38b1390857f2bb3e5289175b0b84650ee431a5",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/115-checkin-v0.1.3-darwin-arm64.tar.gz",
+          "sha256": "0507ec721003e35ada4757b8139e24ea53351be7854f8056fe8704585c655b48",
           "size": 2103713
         }
       }
@@ -44,8 +44,8 @@
       "version": "1.0.0",
       "description": "监控豆瓣即将开播剧集，按想看热度与开播时间自动订阅并发送提醒",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/douban-coming-notice",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/douban-coming-notice",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "GPL-3.0-only",
       "api_version": 1,
       "min_mediary_version": "0.8.10",
@@ -57,24 +57,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-coming-notice-v1.0.0-linux-amd64.tar.gz",
-          "sha256": "3b3f854257653b3bf3911e674af51a1d08e76d99e6e30ea0d70a576540ec322e",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-coming-notice-v1.0.0-linux-amd64.tar.gz",
+          "sha256": "75fe8d0a61193686e4945b1ff988abf1e2bba917d5d8558dbf5b0a401de955d5",
           "size": 3121327
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-coming-notice-v1.0.0-linux-arm64.tar.gz",
-          "sha256": "f523224f7c8a16a195b938498123f0261199d0fee07cfe050bec3c9d6be7cf3f",
-          "size": 3144111
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-coming-notice-v1.0.0-linux-arm64.tar.gz",
+          "sha256": "3080956255846890c9437bc3f9a0282a604f135e2a0ce5128ad43b7f600da32e",
+          "size": 3144116
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-coming-notice-v1.0.0-darwin-amd64.tar.gz",
-          "sha256": "0986ef1706225e9b28747f3cc32b891dc5e1c7804cb33a05ec062ca33ae42ff4",
-          "size": 2959208
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-coming-notice-v1.0.0-darwin-amd64.tar.gz",
+          "sha256": "ecde9e9f845893cd02f233657ab6ba3532339524a6378fdd2b2280ee1907f993",
+          "size": 2959213
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-coming-notice-v1.0.0-darwin-arm64.tar.gz",
-          "sha256": "fedc9b8f4a7a16ed2115e8992436ec8a2741a8340d166db90b52f62536c2a14e",
-          "size": 2846732
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-coming-notice-v1.0.0-darwin-arm64.tar.gz",
+          "sha256": "c8d43d7169f0178f4e4fd44ee9d1091b995d1114c109d3a9f6a56478241a33c7",
+          "size": 2846740
         }
       }
     },
@@ -84,8 +84,8 @@
       "version": "1.0.1",
       "description": "同步一个或多个豆瓣用户最近标记的想看影视，识别 TMDB 后自动创建 Mediary 订阅",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/douban-wish",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/douban-wish",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "GPL-3.0-only",
       "api_version": 1,
       "min_mediary_version": "0.7.7",
@@ -96,24 +96,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-wish-v1.0.1-linux-amd64.tar.gz",
-          "sha256": "0032f016f456698931b57181b5fd0ced21e458af9bfa91398198dba706ebf8ba",
-          "size": 3131681
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-wish-v1.0.1-linux-amd64.tar.gz",
+          "sha256": "c9f34aacc37a4d9b583e90d811c39415d08c1059fb7905ecfff988892d835d2d",
+          "size": 3131679
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-wish-v1.0.1-linux-arm64.tar.gz",
-          "sha256": "05a5a32db2cabba30be59d4edc8181405eee1e1f160ae19ffceccd087323b8b3",
-          "size": 3151788
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-wish-v1.0.1-linux-arm64.tar.gz",
+          "sha256": "bcb10f8499ea779a9db16698b0ba31efb30af8a04d6a4dc23e613d81267009b6",
+          "size": 3151787
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-wish-v1.0.1-darwin-amd64.tar.gz",
-          "sha256": "db4b07f4b8111c9cb59843d59a72db4dd078641c3989ba27d2642963ff4446a6",
-          "size": 2965398
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-wish-v1.0.1-darwin-amd64.tar.gz",
+          "sha256": "7cba5f588f49d951e835d3035ec8a6399308550b64df8c6420557af4fe54764e",
+          "size": 2965416
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/douban-wish-v1.0.1-darwin-arm64.tar.gz",
-          "sha256": "9410bb281992e20bdb50f24f7f88dc16c35740c98e15e5bd0406bacc43ece5ce",
-          "size": 2858115
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/douban-wish-v1.0.1-darwin-arm64.tar.gz",
+          "sha256": "435d656e94317b83425e60399798f2f39577e6620bd42f2555f9c45f5f2dbb73",
+          "size": 2858113
         }
       }
     },
@@ -123,8 +123,8 @@
       "version": "0.2.0",
       "description": "定时读取猫眼榜单，解析 TMDB 后自动创建 Mediary 订阅",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/maoyan-rank",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/maoyan-rank",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "0.7.7",
@@ -135,23 +135,23 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/maoyan-rank-v0.2.0-linux-amd64.tar.gz",
-          "sha256": "fa4d735c5274007da939646d5fab312521df88f8609a3543fd6785b024626ee6",
-          "size": 2381387
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/maoyan-rank-v0.2.0-linux-amd64.tar.gz",
+          "sha256": "84f29779b5ba4107bde4425858592f80e0c3aaf2426539ed43a7f8b0e56b1104",
+          "size": 2381386
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/maoyan-rank-v0.2.0-linux-arm64.tar.gz",
-          "sha256": "b2e80a8ce9429a33bf88ac36854d3b2dd70a8de3d4c6594118fc24b334b647f6",
-          "size": 2388249
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/maoyan-rank-v0.2.0-linux-arm64.tar.gz",
+          "sha256": "eafb641dd4fe3cc81c1af305b70ec6b45caf0fdf2908540368ea187f4b3a87be",
+          "size": 2388248
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/maoyan-rank-v0.2.0-darwin-amd64.tar.gz",
-          "sha256": "a4c077a575df0957425d0b08419522fa7477d14b38d4de1dc8ff85fe933c9016",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/maoyan-rank-v0.2.0-darwin-amd64.tar.gz",
+          "sha256": "c362a6aa88ea04eb0e079620dfebbff4e7c89ee2deebd18bc3a081c07a5d2c13",
           "size": 2273295
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/maoyan-rank-v0.2.0-darwin-arm64.tar.gz",
-          "sha256": "08ba04ea1046c5a064addbe3ff3fb8abbcc95583f22d4e75858b63ee66684fe1",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/maoyan-rank-v0.2.0-darwin-arm64.tar.gz",
+          "sha256": "1b004dd972a4a7a93eb15e58451f3ae87fd7b5e7af5d255068e749441cc867a2",
           "size": 2194534
         }
       }
@@ -162,32 +162,32 @@
       "version": "0.1.3",
       "description": "聚合搜索 115 分享、磁力与 ed2k 资源，由 Mediary 分别执行转存整理或 115 离线下载",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/pansou",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/pansou",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "0.7.7",
       "permissions": [],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pansou-v0.1.3-linux-amd64.tar.gz",
-          "sha256": "2a74a13c265174b6a039d96e0f3d74c3a0760fb1d6d4101da9fa6cb36d3b19a4",
-          "size": 2221428
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pansou-v0.1.3-linux-amd64.tar.gz",
+          "sha256": "8cc557f7f8dc2c1e909152c8a00d2300e1f200747c83f07118475c0ac5817ba2",
+          "size": 2221384
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pansou-v0.1.3-linux-arm64.tar.gz",
-          "sha256": "98bdec0fec7ec33fffd4fee89338350b2d14b9c11b6fff18217f6d86a7564d5d",
-          "size": 2237771
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pansou-v0.1.3-linux-arm64.tar.gz",
+          "sha256": "af62495f90eee34be67951b6d72f5f44ccc6c4cc9a69c200a133cf03b84d31e9",
+          "size": 2237769
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pansou-v0.1.3-darwin-amd64.tar.gz",
-          "sha256": "c9e23ebf1951f2481715f25d9e6637dac3088a728eef1f0e4890205e3f597246",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pansou-v0.1.3-darwin-amd64.tar.gz",
+          "sha256": "1d959ca676b91f2ab7ce3833cc124dd095c433423994ca8011e5d1b0734aa145",
           "size": 2119782
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pansou-v0.1.3-darwin-arm64.tar.gz",
-          "sha256": "933791ea282fa7c6767fad08354ce8eba43c03623815925b006ffa5179af0542",
-          "size": 2054319
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pansou-v0.1.3-darwin-arm64.tar.gz",
+          "sha256": "2f77d542babaa32de4781b95a8964936a4709a3b2a82535be67bab27c282c131",
+          "size": 2054328
         }
       }
     },
@@ -236,38 +236,38 @@
     {
       "id": "pt-site-message",
       "name": "PT 站内信通知",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/pt-site-message",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/pt-site-message",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
-      "min_mediary_version": "1.9.8",
+      "min_mediary_version": "1.9.9",
       "permissions": [
         "sites:read",
         "notifications:send"
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pt-site-message-v0.1.1-linux-amd64.tar.gz",
-          "sha256": "69cec72ca195321bb2d63b8bc2b068d92136482aada1f9ee8f03261bc50c5f3d",
-          "size": 2135767
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pt-site-message-v0.1.2-linux-amd64.tar.gz",
+          "sha256": "9f06d86a573aa66f94d7a694748cd40e8e5d1f621d831126f51ad84171e2ab69",
+          "size": 2135786
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pt-site-message-v0.1.1-linux-arm64.tar.gz",
-          "sha256": "d5f265651e64cb55baa30f8fe89b3bb606d76a8fb74a6d6ef8e368b3505afa2b",
-          "size": 2145843
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pt-site-message-v0.1.2-linux-arm64.tar.gz",
+          "sha256": "8bba55480addd95d406a4283bb862752269f283d1ea6416f29c2046807afe0fd",
+          "size": 2145870
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pt-site-message-v0.1.1-darwin-amd64.tar.gz",
-          "sha256": "429861dee90aa9a69785ca20fca864cc484064141518a21a1e01f128975d7192",
-          "size": 2029492
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pt-site-message-v0.1.2-darwin-amd64.tar.gz",
+          "sha256": "d63fa356cdbfc635da902f134307efbb7f67dddde62ced0fc0248c821e4961d3",
+          "size": 2029515
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/pt-site-message-v0.1.1-darwin-arm64.tar.gz",
-          "sha256": "62bca205971d02454bb8c822209c26589e70b657a4624c8f418f325f92b312f5",
-          "size": 1960539
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/pt-site-message-v0.1.2-darwin-arm64.tar.gz",
+          "sha256": "3c1c88d61e8c1e9308c0f0048892723bcdc297574fa74a4370eb213d989e8e07",
+          "size": 1960558
         }
       }
     },
@@ -277,8 +277,8 @@
       "version": "0.1.0",
       "description": "将 Seerr 已批准的媒体请求转换为 Mediary 订阅，支持多季拆分、幂等和拒绝同步",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/seerr",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/seerr",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "1.9.0",
@@ -289,24 +289,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/seerr-v0.1.0-linux-amd64.tar.gz",
-          "sha256": "e86113b66fbc23a78d43bee6c292c69cda98e92cf5142b23be55f9647cf89c5f",
-          "size": 2265844
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/seerr-v0.1.0-linux-amd64.tar.gz",
+          "sha256": "7a92e174a49074caf4ca2ef45ce5c3e5fedd12999efddbfda6cf59ef4f246465",
+          "size": 2265849
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/seerr-v0.1.0-linux-arm64.tar.gz",
-          "sha256": "81244e0b7d5e72a5bc505f9bf8f6e54e1c3cea29c0de906cabebda62a99eac97",
-          "size": 2255081
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/seerr-v0.1.0-linux-arm64.tar.gz",
+          "sha256": "7428f00f61e5256351c370e09083c92ed5d06c9457471d72d4517639c65e0f24",
+          "size": 2255078
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/seerr-v0.1.0-darwin-amd64.tar.gz",
-          "sha256": "b4519cd96921937650bdeb3d375bc26450f92b7ada72a0d5d92b431c91e4ac8e",
-          "size": 2156995
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/seerr-v0.1.0-darwin-amd64.tar.gz",
+          "sha256": "77d31e80f893b64ba11e2df4cc98af3518a75b3cd885888b92f999af13438a11",
+          "size": 2156993
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/seerr-v0.1.0-darwin-arm64.tar.gz",
-          "sha256": "0441f36dac02bbd1a434f683b9220c436268afe8d84ae9f21d361108707aad5e",
-          "size": 2063800
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/seerr-v0.1.0-darwin-arm64.tar.gz",
+          "sha256": "54cafe74002c13474c0bf1164f602491395a65e2bc7a9e08dfabb40dc1647a7b",
+          "size": 2063798
         }
       }
     },
@@ -316,8 +316,8 @@
       "version": "0.1.3",
       "description": "使用什么值得买 App 接口为单个账号执行每日签到，支持协议回退和失效通知",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/smzdm-checkin",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/smzdm-checkin",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "1.9.4",
@@ -327,24 +327,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/smzdm-checkin-v0.1.3-linux-amd64.tar.gz",
-          "sha256": "09748b45c4cc5aa5319b79f04c5fcc3cf642b42ed600d1fae212f546ea8cc4c6",
-          "size": 2170566
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/smzdm-checkin-v0.1.3-linux-amd64.tar.gz",
+          "sha256": "6e33f70d4a9d71f63e4533f299f6865b3247af40fa3d865df2eb1df75ad01a78",
+          "size": 2170570
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/smzdm-checkin-v0.1.3-linux-arm64.tar.gz",
-          "sha256": "a9fad2c2179a72db6dc1943cca8c10bb5b524ddafea92208d7484c94570800c3",
-          "size": 2164024
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/smzdm-checkin-v0.1.3-linux-arm64.tar.gz",
+          "sha256": "16c038f35795e1d5a9e99be9c7d73652fec8e67e6b3e139e483bbf9c5719632f",
+          "size": 2164025
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/smzdm-checkin-v0.1.3-darwin-amd64.tar.gz",
-          "sha256": "3db280abada6045ef0cbacfdea404e285c50dda10a1399a47e0e905e7ac9a987",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/smzdm-checkin-v0.1.3-darwin-amd64.tar.gz",
+          "sha256": "5d7eb6fd2f74f089e9437ae908e262b795c62528571a3408c6371428dafaa12b",
           "size": 2063922
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/smzdm-checkin-v0.1.3-darwin-arm64.tar.gz",
-          "sha256": "d9b68e148d132c65ea1e4bb1787ab25bb9d0bc464fbdacc7fe91ee04ac8b7d9d",
-          "size": 1978324
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/smzdm-checkin-v0.1.3-darwin-arm64.tar.gz",
+          "sha256": "97e13f1f878591e3df6686f293ecda533753a9847bde87d7ad8305b9f92d4f51",
+          "size": 1978326
         }
       }
     },
@@ -354,8 +354,8 @@
       "version": "0.1.1",
       "description": "每天汇总当天更新的剧集订阅，按播出时间发送清晰的追更提醒",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/subscribe-reminder",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/subscribe-reminder",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "0.8.10",
@@ -366,24 +366,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/subscribe-reminder-v0.1.1-linux-amd64.tar.gz",
-          "sha256": "4b356780695c7fb2ec70ee08f66f848a0e173434fb19937ada6a61b5c6247d72",
-          "size": 2324109
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-linux-amd64.tar.gz",
+          "sha256": "671716a2abb3bdabe4d2f63715322bbe27fc5a95b3d4e57cec4754ad3ebf236e",
+          "size": 2324099
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/subscribe-reminder-v0.1.1-linux-arm64.tar.gz",
-          "sha256": "16952971f50318c5a1d5ab7ef3e4ee5835ae083d998ee43a5675c5a25b854c60",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-linux-arm64.tar.gz",
+          "sha256": "4fd6bc505b94e0d9897a6b483d470bcfdd6363e0965e309d26522da11cce0e8e",
           "size": 2339699
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/subscribe-reminder-v0.1.1-darwin-amd64.tar.gz",
-          "sha256": "179e9ee66ccdd17797d0a67f39378b8d3b331f3edfe6e42a19da5def824aa621",
-          "size": 2215490
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-darwin-amd64.tar.gz",
+          "sha256": "c33912fccfc23df4c13f3f35b84904380e2bad9da5e891074e8d08434129fe86",
+          "size": 2215489
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/subscribe-reminder-v0.1.1-darwin-arm64.tar.gz",
-          "sha256": "aeb08c75da9bd9d7f8df42f05ae726f04110016c709a8ec2ab672751844819ac",
-          "size": 2148646
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-darwin-arm64.tar.gz",
+          "sha256": "c665f864b0421f5c6e54cf57fae9bdc6299a001e6afc0aa87d5814d425329ba3",
+          "size": 2148647
         }
       }
     },
@@ -393,8 +393,8 @@
       "version": "0.3.0",
       "description": "按国内剧集、国外剧集、国内电影、国外电影和动漫浏览 TMDB 热门内容",
       "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official/tmdb-trending",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.21/official",
+      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/tmdb-trending",
+      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
       "license": "MIT",
       "api_version": 1,
       "min_mediary_version": "0.8.1",
@@ -404,24 +404,24 @@
       ],
       "artifacts": {
         "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/tmdb-trending-v0.3.0-linux-amd64.tar.gz",
-          "sha256": "dafe309eb3035cb265246ff575fdf5b47e92a22dace536256a6427415e7788c8",
-          "size": 2249118
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/tmdb-trending-v0.3.0-linux-amd64.tar.gz",
+          "sha256": "c5fa91ab3b71d5d4e948731a26fde64186770806c1cf01b98f5a7f5da7f17157",
+          "size": 2249114
         },
         "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/tmdb-trending-v0.3.0-linux-arm64.tar.gz",
-          "sha256": "c376d89cf75ccfb3168b01c8673c5d50cde5fb54a1a8004c5d720ec621bfb771",
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/tmdb-trending-v0.3.0-linux-arm64.tar.gz",
+          "sha256": "a2dd5bafa7381accf20084325e5d08518e4264bac9718b8d47ae750521d740cf",
           "size": 2264725
         },
         "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/tmdb-trending-v0.3.0-darwin-amd64.tar.gz",
-          "sha256": "80b350dc5b4d7b71e1c1e9461e6506504d66704b6a9ba2fea34ccf215e2cd2e1",
-          "size": 2146395
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/tmdb-trending-v0.3.0-darwin-amd64.tar.gz",
+          "sha256": "332b42cf2ae9b4034251c5d9081d4d618400d5049177dcec00c05013f442fabc",
+          "size": 2146402
         },
         "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.21/tmdb-trending-v0.3.0-darwin-arm64.tar.gz",
-          "sha256": "e67266ce4ed262b6b41f151c45f287024aa425167d7d59448d05b0f2e0639a5c",
-          "size": 2077961
+          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/tmdb-trending-v0.3.0-darwin-arm64.tar.gz",
+          "sha256": "352a22be48321e2932b3c82cd8b5bbcd4056bfb5311b461c4cab8241ecf7b925",
+          "size": 2077960
         }
       }
     }
