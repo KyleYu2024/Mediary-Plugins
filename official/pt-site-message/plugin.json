@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "pt-site-message",
   "name": "PT 站内信通知",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
   "action_runtime": {
     "entrypoint": "./plugin"
@@ -52,7 +52,7 @@
       },
       {
         "title": "说明",
-        "alert": "读取站内信详情可能会使消息在 PT 站点上变为已读。M-Team 当前无法读取站内信详情，会在运行结果中说明且不会发送通知。",
+        "alert": "读取站内信详情可能会使部分 PT 站点上的消息变为已读。M-Team 需要在站点设置中配置有效的 API Key 和 Authorization。",
         "fields": []
       }
     ]
