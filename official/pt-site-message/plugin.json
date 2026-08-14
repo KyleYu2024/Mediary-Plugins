@@ -1,0 +1,79 @@
+{
+  "api_version": 1,
+  "id": "pt-site-message",
+  "name": "PT 站内信通知",
+  "version": "0.1.0",
+  "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "check",
+      "label": "立即检查",
+      "manual": true,
+      "cron": "0 */6 * * *",
+      "timeout_seconds": 1200
+    }
+  ],
+  "requested_scopes": [
+    "sites:read",
+    "notifications:send"
+  ],
+  "auto_grant_scopes": true,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "站内信检查",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false,
+            "help": "开启后每 6 小时自动检查一次，也可以手动立即检查。"
+          },
+          {
+            "key": "site_ids",
+            "type": "text",
+            "label": "站点 ID",
+            "placeholder": "例如：1,2,5；留空检查全部已启用站点",
+            "help": "多个站点 ID 用英文逗号分隔。插件只接收站内信内容，不会获得站点 Cookie。"
+          },
+          {
+            "key": "title_filters",
+            "type": "text",
+            "label": "标题过滤词",
+            "placeholder": "例如：签到|促销,公告，管理组通知",
+            "help": "支持 |、英文逗号和中文逗号，全部表示“或”；标题命中任一关键词时不发送通知。",
+            "span": 2
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "读取站内信详情可能会使消息在 PT 站点上变为已读。M-Team 当前无法读取站内信详情，会在运行结果中说明且不会发送通知。",
+        "fields": []
+      }
+    ]
+  },
+  "data_view": {
+    "title": "PT 站内信处理记录",
+    "file": "data/history.json",
+    "item_label": "站内信记录",
+    "summary": [
+      { "key": "runs", "label": "运行次数" },
+      { "key": "notified", "label": "已通知" },
+      { "key": "filtered", "label": "已过滤" },
+      { "key": "last_result", "label": "最近结果" },
+      { "key": "last_run_at", "label": "最近运行" }
+    ],
+    "fields": [
+      { "key": "title", "label": "标题", "primary": true },
+      { "key": "site_name", "label": "站点" },
+      { "key": "status", "label": "处理结果" },
+      { "key": "message_date", "label": "消息时间" },
+      { "key": "processed_at", "label": "处理时间" }
+    ]
+  }
+}
