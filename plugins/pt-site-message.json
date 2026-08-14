@@ -1,0 +1,38 @@
+{
+  "id": "pt-site-message",
+  "name": "PT 站内信通知",
+  "version": "0.1.0",
+  "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.20/official/pt-site-message",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.20/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "1.9.8",
+  "permissions": [
+    "sites:read",
+    "notifications:send"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.20/pt-site-message-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "fff4f076fe29428b06396f19600b83fa39e3a6890d6f0de317cbcb91e3a70bf7",
+      "size": 2135563
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.20/pt-site-message-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "b4efb0e7f13b65d36817606402bc2ee2fa94e3d5bd993efe4bb0162c8ea1a599",
+      "size": 2145867
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.20/pt-site-message-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "8cc1020a686f099e47534a2f39da8551517ea069eeeb0244184f1d38d1335afe",
+      "size": 2029487
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.20/pt-site-message-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "b7e7bf7dfae53e9c6bdc2dabd2324d24b1c87575def37d5e526219108eb8e072",
+      "size": 1960545
+    }
+  }
+}
