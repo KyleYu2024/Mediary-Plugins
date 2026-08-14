@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "pt-site-message",
   "name": "PT 站内信通知",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
   "action_runtime": {
     "entrypoint": "./plugin"
