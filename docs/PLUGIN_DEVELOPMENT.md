@@ -286,8 +286,9 @@ URL 基于 `MEDIARY_PLUGIN_API_URL` 拼接，不要写死主机、端口或再�
 
 | Scope | 路由 | 用途 |
 | --- | --- | --- |
-| `torrents:read` | `GET /plugin/sites` | 列出已启用 PT 站点，不返回凭据 |
+| `sites:read` | `GET /plugin/sites` | 列出已启用 PT 站点，不返回凭据 |
 | `torrents:read` | `GET /plugin/torrents` | 搜索或读取最新种子 |
+| `sites:read` | `GET /plugin/site-messages` | 读取选定 PT 站点的未读站内信内容，不返回站点凭据 |
 | `downloads:create` | `POST /plugin/downloads` | 添加原始下载、磁力或 `mteam://` 任务 |
 | `downloader:read` | `GET /plugin/downloader/torrents` | 读取下载器完整任务状态 |
 | `cookiecloud:read` | `GET /plugin/cookiecloud?domain=<域名>` | 读取清单 `cookiecloud_domains` 允许域名及其子域可携带的 Cookie |

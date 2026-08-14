@@ -39,6 +39,10 @@ path = "src/bin/douban-coming-notice-plugin.rs"
 name = "douban-wish-plugin"
 path = "src/bin/douban-wish-plugin.rs"
 
+[[bin]]
+name = "pt-site-message-plugin"
+path = "src/bin/pt-site-message-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }

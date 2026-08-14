@@ -23,6 +23,7 @@ const pluginIds = [
   'tmdb-trending',
   'subscribe-reminder',
   'seerr',
+  'pt-site-message',
 ];
 const minimumMediaryVersions = {
   '115-checkin': '1.8.0',
@@ -34,6 +35,7 @@ const minimumMediaryVersions = {
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
   seerr: '1.9.0',
+  'pt-site-message': '1.9.8',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
