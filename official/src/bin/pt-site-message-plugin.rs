@@ -10,7 +10,7 @@ use std::{
 };
 
 const MAX_HISTORY_ITEMS: usize = 2000;
-const NOTIFICATION_IMAGE_URL: &str = "https://raw.githubusercontent.com/KyleYu2024/Mediary-Plugins/main/official/pt-site-message/assets/notification.png";
+const NOTIFICATION_IMAGE_URL: &str = "https://raw.githubusercontent.com/KyleYu2024/Mediary-Plugins/plugins-v1.0.21/official/pt-site-message/assets/notification.png";
 
 #[derive(Default, Deserialize)]
 struct Settings {
