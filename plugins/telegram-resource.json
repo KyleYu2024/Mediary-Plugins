@@ -1,0 +1,37 @@
+{
+  "id": "telegram-resource",
+  "name": "TG搜索",
+  "version": "0.1.0",
+  "description": "搜索已加入的 Telegram 公开频道，识别 115 分享、磁力与 ed2k 链接并推送到 Mediary",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.23/official/telegram-resource",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.23/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "1.8.0",
+  "permissions": [
+    "integrations:run"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/telegram-resource-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "d0fd92d38ae6ceb46822cb9df9f107eb0006e35b595d8bab1e071288e3daa4fe",
+      "size": 5454544
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/telegram-resource-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "0ed0968f1cc54a63f6cd5e2e8dcffea943aabe1bb6d88ec72243fcf991dc2014",
+      "size": 5402585
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/telegram-resource-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "1365f08d48fac47fe3e4b7c145492b3ba15576baf56aec1ba6848143507956ce",
+      "size": 5132459
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/telegram-resource-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "b07e94cce550e8a7d2e3a8163470d51db02e38f64106ba410b6f27c18f03a622",
+      "size": 4894720
+    }
+  }
+}

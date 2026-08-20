@@ -4,8 +4,8 @@
   "version": "0.1.1",
   "description": "每天汇总当天更新的剧集订阅，按播出时间发送清晰的追更提醒",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official/subscribe-reminder",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.22/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.23/official/subscribe-reminder",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.23/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "0.8.10",
@@ -16,24 +16,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-linux-amd64.tar.gz",
-      "sha256": "671716a2abb3bdabe4d2f63715322bbe27fc5a95b3d4e57cec4754ad3ebf236e",
-      "size": 2324099
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/subscribe-reminder-v0.1.1-linux-amd64.tar.gz",
+      "sha256": "3929e62d5fe120b9f8680b6a4afc438a679fd25f49f9ea3ba3cebdba935d16d3",
+      "size": 2326611
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-linux-arm64.tar.gz",
-      "sha256": "4fd6bc505b94e0d9897a6b483d470bcfdd6363e0965e309d26522da11cce0e8e",
-      "size": 2339699
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/subscribe-reminder-v0.1.1-linux-arm64.tar.gz",
+      "sha256": "0dbb2ab977690080192f65c0b6f05a0954567bf62fb6fc54c7d3dc6436221b7a",
+      "size": 2342700
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-darwin-amd64.tar.gz",
-      "sha256": "c33912fccfc23df4c13f3f35b84904380e2bad9da5e891074e8d08434129fe86",
-      "size": 2215489
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/subscribe-reminder-v0.1.1-darwin-amd64.tar.gz",
+      "sha256": "7610e02db7378211a001ed495bb48c27e5851f6546403d80fe0cbb793592d5e3",
+      "size": 2216145
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.22/subscribe-reminder-v0.1.1-darwin-arm64.tar.gz",
-      "sha256": "c665f864b0421f5c6e54cf57fae9bdc6299a001e6afc0aa87d5814d425329ba3",
-      "size": 2148647
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.23/subscribe-reminder-v0.1.1-darwin-arm64.tar.gz",
+      "sha256": "7f15365320bf7bd875f655ce13ee3b8bc09490729d207ef90f10d191e6b17818",
+      "size": 2148315
     }
   }
 }
