@@ -37,7 +37,7 @@ const minimumMediaryVersions = {
   'subscribe-reminder': '0.8.10',
   seerr: '1.9.0',
   'pt-site-message': '1.9.9',
-  'telegram-resource': '1.8.0',
+  'telegram-resource': '2.0.9',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
