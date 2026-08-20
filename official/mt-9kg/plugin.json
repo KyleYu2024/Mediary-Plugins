@@ -3,7 +3,7 @@
   "id": "mt-9kg",
   "name": "mt-9kg",
   "version": "0.1.0",
-  "description": "将 M-Team 成人分区作为独立搜索源接入 Mediary 资源搜索，支持原生结果展示和下载",
+  "description": "将 M-Team 成人分区作为独立搜索源接入，支持原生结果展示和下载",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
