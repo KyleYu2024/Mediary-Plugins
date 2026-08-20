@@ -43,6 +43,10 @@ path = "src/bin/douban-wish-plugin.rs"
 name = "pt-site-message-plugin"
 path = "src/bin/pt-site-message-plugin.rs"
 
+[[bin]]
+name = "mt-9kg-plugin"
+path = "src/bin/mt-9kg-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }

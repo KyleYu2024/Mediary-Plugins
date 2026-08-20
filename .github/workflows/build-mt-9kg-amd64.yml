@@ -1,0 +1,59 @@
+name: Build mt-9kg Linux AMD64
+
+on:
+  push:
+    branches:
+      - codex/build-mt-9kg-amd64
+    paths:
+      - ".github/workflows/build-mt-9kg-amd64.yml"
+      - "official/Cargo.toml"
+      - "official/Cargo.lock"
+      - "official/src/bin/mt-9kg-plugin.rs"
+      - "official/mt-9kg/plugin.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Linux AMD64 package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test mt-9kg
+        run: cargo test --manifest-path official/Cargo.toml --locked --bin mt-9kg-plugin
+
+      - name: Build mt-9kg
+        run: cargo build --manifest-path official/Cargo.toml --locked --release --bin mt-9kg-plugin
+
+      - name: Package mt-9kg
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "JSON.parse(require('fs').readFileSync('official/mt-9kg/plugin.json')).version")
+          package_dir="package-mt-9kg"
+          output="mt-9kg-v${version}-linux-amd64.tar.gz"
+          mkdir -p "${package_dir}" dist
+          cp official/target/release/mt-9kg-plugin "${package_dir}/plugin"
+          cp official/mt-9kg/plugin.json "${package_dir}/plugin.json"
+          chmod 755 "${package_dir}/plugin"
+          tar -C "${package_dir}" -czf "dist/${output}" plugin plugin.json
+          sha256sum "dist/${output}" > dist/SHA256SUMS
+
+      - name: Upload Linux AMD64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt-9kg-v0.1.0-linux-amd64
+          path: |
+            dist/mt-9kg-v0.1.0-linux-amd64.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

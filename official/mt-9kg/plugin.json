@@ -1,0 +1,83 @@
+{
+  "api_version": 1,
+  "id": "mt-9kg",
+  "name": "mt-9kg",
+  "version": "0.1.0",
+  "description": "将 M-Team 成人分区作为独立搜索源接入 Mediary 资源搜索，支持原生结果展示和下载",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "resource_search": {
+    "source_id": -9009,
+    "name": "mt-9kg",
+    "action": "resource_search",
+    "transfer_action": "download",
+    "default_selected": false,
+    "timeout_seconds": 90
+  },
+  "requested_scopes": [
+    "torrents:read",
+    "downloads:create"
+  ],
+  "auto_grant_scopes": true,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "搜索设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false,
+            "help": "启用后，资源搜索的搜索源列表中会出现 mt-9kg。"
+          },
+          {
+            "key": "free_only",
+            "type": "switch",
+            "label": "仅显示免费种",
+            "default": false
+          },
+          {
+            "key": "result_limit",
+            "type": "number",
+            "label": "结果数量",
+            "default": 100,
+            "min": 1,
+            "max": 100,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "title": "下载设置",
+        "fields": [
+          {
+            "key": "save_path",
+            "type": "text",
+            "label": "下载器保存路径",
+            "placeholder": "留空使用下载器默认路径",
+            "help": "该路径直接传给 Mediary 当前配置的下载器，不是 Mediary 媒体整理路径。"
+          },
+          {
+            "key": "category",
+            "type": "text",
+            "label": "下载器分类",
+            "placeholder": "选填"
+          },
+          {
+            "key": "paused",
+            "type": "switch",
+            "label": "暂停添加",
+            "default": false
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "插件使用 Mediary 已配置的 M-Team 站点和默认下载器，只添加原始下载任务，不做 TMDB 匹配、订阅或媒体整理，也不会读取或保存站点凭据。",
+        "fields": []
+      }
+    ]
+  }
+}
