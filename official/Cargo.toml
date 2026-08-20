@@ -49,10 +49,11 @@ path = "src/bin/telegram-resource-plugin.rs"
 
 [dependencies]
 axum = "0.7"
+base64 = "0.22"
 chrono = { version = "0.4", features = ["clock"] }
 fs2 = "0.4"
 grammers-client = "=0.10.0"
-grammers-mtsender = "=0.10.0"
+grammers-mtsender = { version = "=0.10.0", features = ["proxy"] }
 grammers-session = "=0.10.0"
 grammers-tl-types = "=0.10.0"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
@@ -63,4 +64,4 @@ serde_json = "1.0"
 md-5 = "0.10"
 sha1 = "0.10"
 sha2 = "0.10"
-tokio = { version = "1.38", features = ["macros", "net", "rt-multi-thread", "sync"] }
+tokio = { version = "1.38", features = ["io-util", "macros", "net", "rt-multi-thread", "sync"] }

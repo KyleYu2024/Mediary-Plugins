@@ -11,6 +11,7 @@
 - 115 分享提交给 FlowLink 转存整理；
 - magnet 与 ed2k 提交到 Mediary 配置的 115 转存监控目录，并在 10 秒后触发一次 FlowLink `move all`；
 - 推送前重新读取 Telegram 原消息并校验链接。
+- 自动复用 Mediary 系统设置中的代理，支持 HTTP CONNECT 和 SOCKS5。
 
 ## 获取 Telegram 应用参数
 
@@ -25,6 +26,9 @@
 3. 点击“发送验证码”。Telegram 通常会把验证码发送到已登录的 Telegram 客户端。
 4. 输入验证码并点击“完成登录”。如果提示需要两步验证，再填写密码并再次点击“完成登录”。
 5. 不要点击保存验证码或两步验证密码；它们只用于当前登录动作。
+
+国内网络无法直连 Telegram 时，插件会自动读取 Mediary“系统设置”中的代理地址。现有
+`http://` 代理会通过 HTTP CONNECT 连接 Telegram MTProto 数据中心，无需另填插件代理。
 
 频道每行填写一个，可使用 `@channel_name`、`channel_name` 或 `https://t.me/channel_name`。插件只接受公开用户名，不接受私有邀请链接。
 
