@@ -1,0 +1,132 @@
+{
+  "api_version": 1,
+  "id": "telegram-resource",
+  "name": "TG搜索",
+  "version": "0.1.0",
+  "description": "搜索已加入的 Telegram 公开频道，识别 115 分享、磁力与 ed2k 链接并推送到 Mediary",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "resource_search": {
+    "source_id": -3,
+    "name": "TG搜索",
+    "action": "resource_search",
+    "transfer_action": "transfer",
+    "default_selected": true,
+    "timeout_seconds": 85
+  },
+  "secret_fields": [
+    "api_hash",
+    "login_code",
+    "two_factor_password"
+  ],
+  "requested_scopes": [
+    "integrations:run"
+  ],
+  "auto_grant_scopes": true,
+  "settings_schema": {
+    "status_action": "status",
+    "sections": [
+      {
+        "title": "Telegram 应用",
+        "alert": "在 my.telegram.org 创建应用并填写 API ID、API Hash。插件以你的 Telegram 用户账号登录，不使用 Bot Token。",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          },
+          {
+            "key": "api_id",
+            "type": "number",
+            "label": "API ID",
+            "min": 1,
+            "step": 1,
+            "placeholder": "12345678"
+          },
+          {
+            "key": "api_hash",
+            "type": "text",
+            "label": "API Hash",
+            "placeholder": "32 位 API Hash"
+          },
+          {
+            "key": "phone",
+            "type": "text",
+            "label": "手机号",
+            "placeholder": "+8613800000000",
+            "help": "使用国际格式，仅用于 Telegram 登录"
+          }
+        ]
+      },
+      {
+        "title": "用户登录",
+        "alert": "先保存并启用插件，再发送验证码。验证码和两步验证密码只需临时输入并点击“完成登录”，不要保存到配置。",
+        "fields": [
+          {
+            "key": "login_code",
+            "type": "text",
+            "label": "登录验证码",
+            "placeholder": "收到验证码后填写"
+          },
+          {
+            "key": "two_factor_password",
+            "type": "text",
+            "label": "两步验证密码",
+            "placeholder": "仅账号启用两步验证时填写"
+          }
+        ],
+        "actions": [
+          {
+            "type": "plugin_action",
+            "action": "send_code",
+            "label": "发送验证码",
+            "pending_label": "发送中",
+            "icon": "send",
+            "error_message": "发送 Telegram 验证码失败。"
+          },
+          {
+            "type": "plugin_action",
+            "action": "complete_login",
+            "label": "完成登录",
+            "pending_label": "登录中",
+            "icon": "log-in",
+            "error_message": "Telegram 登录失败。"
+          }
+        ]
+      },
+      {
+        "title": "搜索范围",
+        "fields": [
+          {
+            "key": "channels",
+            "type": "text",
+            "label": "公开频道",
+            "placeholder": "movie_channel\nanother_channel",
+            "help": "每行一个公开频道用户名，可填写 @username 或 t.me/username；账号必须已经加入",
+            "span": 2
+          },
+          {
+            "key": "per_channel_limit",
+            "type": "number",
+            "label": "每频道消息数",
+            "default": 50,
+            "min": 1,
+            "max": 100,
+            "step": 1
+          },
+          {
+            "key": "max_results",
+            "type": "number",
+            "label": "最多结果数",
+            "default": 200,
+            "min": 1,
+            "max": 500,
+            "step": 1
+          }
+        ]
+      }
+    ]
+  }
+}

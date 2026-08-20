@@ -43,10 +43,18 @@ path = "src/bin/douban-wish-plugin.rs"
 name = "pt-site-message-plugin"
 path = "src/bin/pt-site-message-plugin.rs"
 
+[[bin]]
+name = "telegram-resource-plugin"
+path = "src/bin/telegram-resource-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", features = ["clock"] }
 fs2 = "0.4"
+grammers-client = "=0.10.0"
+grammers-mtsender = "=0.10.0"
+grammers-session = "=0.10.0"
+grammers-tl-types = "=0.10.0"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 quick-xml = { version = "0.41", features = ["serialize"] }
 regex = "1.11"

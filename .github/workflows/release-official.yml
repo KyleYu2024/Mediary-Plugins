@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message; do
+          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message telegram-resource; do
             version=$(node -p "JSON.parse(require('fs').readFileSync('official/${plugin_id}/plugin.json')).version")
             package_dir="package-${plugin_id}"
             mkdir -p "${package_dir}"
