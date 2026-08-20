@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "telegram-resource",
   "name": "TG搜索",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "搜索已加入的 Telegram 公开频道，识别 115 分享、磁力与 ed2k 链接并推送到 Mediary",
   "action_runtime": {
     "entrypoint": "./plugin"
@@ -21,7 +21,8 @@
     "two_factor_password"
   ],
   "requested_scopes": [
-    "integrations:run"
+    "integrations:run",
+    "settings:read"
   ],
   "auto_grant_scopes": true,
   "settings_schema": {

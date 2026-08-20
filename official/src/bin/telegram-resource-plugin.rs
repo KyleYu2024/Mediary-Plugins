@@ -1,24 +1,31 @@
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::Utc;
 use fs2::FileExt;
 use grammers_client::{
     Client as TelegramClient, SignInError, client::PasswordToken, media::Media, message::Message,
     peer::Peer,
 };
-use grammers_mtsender::{InvocationError, SenderPool, SenderPoolFatHandle};
+use grammers_mtsender::{ConnectionParams, InvocationError, SenderPool, SenderPoolFatHandle};
 use grammers_session::{Session, storages::SqliteSession};
 use grammers_tl_types as tl;
 use regex::Regex;
-use reqwest::Client as HttpClient;
+use reqwest::{Client as HttpClient, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::{
     collections::HashSet,
     env, fs,
     fs::{File, OpenOptions},
-    io::Read,
+    io::{self, Read},
+    net::{IpAddr, SocketAddr},
     path::{Path, PathBuf},
     sync::{Arc, OnceLock},
     time::Duration,
+};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+    task::{JoinHandle, JoinSet},
 };
 
 #[cfg(unix)]
@@ -32,6 +39,7 @@ const MAX_CHANNELS: usize = 50;
 const MAX_DESCRIPTION_CHARS: usize = 800;
 const SECRET_PLACEHOLDER: &str = "******";
 const FLOWLINK_MOVE_ALL_DELAY_SECONDS: u64 = 10;
+const MAX_PROXY_RESPONSE_HEADER_BYTES: usize = 16 * 1024;
 
 #[derive(Clone)]
 struct PluginContext {
@@ -52,7 +60,20 @@ struct TelegramConnection {
     client: TelegramClient,
     session: Arc<SqliteSession>,
     handle: SenderPoolFatHandle,
-    runner: tokio::task::JoinHandle<()>,
+    runner: JoinHandle<()>,
+    _http_proxy_bridge: Option<HttpConnectBridge>,
+}
+
+#[derive(Clone)]
+struct HttpProxyConfig {
+    host: String,
+    port: u16,
+    authorization: Option<String>,
+}
+
+struct HttpConnectBridge {
+    address: SocketAddr,
+    runner: JoinHandle<()>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,6 +152,7 @@ impl PluginContext {
             .map_err(|error| format!("创建 Telegram 插件数据目录失败: {error}"))?;
         secure_directory(&data_dir)?;
         let http = HttpClient::builder()
+            .no_proxy()
             .connect_timeout(Duration::from_secs(8))
             .timeout(Duration::from_secs(70))
             .build()
@@ -157,8 +179,12 @@ impl TelegramConnection {
                 .map_err(|error| format!("打开 Telegram Session 失败: {error}"))?,
         );
         secure_file_if_exists(&session_path)?;
-        let SenderPool { runner, handle, .. } =
-            SenderPool::new(Arc::clone(&session), credentials.api_id);
+        let (connection_params, http_proxy_bridge) = telegram_connection_params(context).await?;
+        let SenderPool { runner, handle, .. } = SenderPool::with_configuration(
+            Arc::clone(&session),
+            credentials.api_id,
+            connection_params,
+        );
         let client = TelegramClient::new(handle.clone());
         let runner = tokio::spawn(runner.run());
         Ok(Self {
@@ -166,6 +192,7 @@ impl TelegramConnection {
             session,
             handle,
             runner,
+            _http_proxy_bridge: http_proxy_bridge,
         })
     }
 
@@ -183,6 +210,268 @@ impl Drop for TelegramConnection {
         let _ = self.handle.quit();
         self.runner.abort();
     }
+}
+
+impl HttpConnectBridge {
+    async fn start(proxy_url: &str) -> Result<Self, String> {
+        let config = parse_http_proxy(proxy_url)?;
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .map_err(|error| format!("创建 Telegram HTTP 代理桥接失败: {error}"))?;
+        let address = listener
+            .local_addr()
+            .map_err(|error| format!("读取 Telegram HTTP 代理桥接地址失败: {error}"))?;
+        let runner = tokio::spawn(run_http_connect_bridge(listener, config));
+        Ok(Self { address, runner })
+    }
+
+    fn socks_url(&self) -> String {
+        format!("socks5://{}", self.address)
+    }
+}
+
+impl Drop for HttpConnectBridge {
+    fn drop(&mut self) {
+        self.runner.abort();
+    }
+}
+
+async fn telegram_connection_params(
+    context: &PluginContext,
+) -> Result<(ConnectionParams, Option<HttpConnectBridge>), String> {
+    let mut params = ConnectionParams::default();
+    let Some(proxy_url) = configured_proxy_url(context).await? else {
+        return Ok((params, None));
+    };
+    let parsed = Url::parse(&proxy_url).map_err(|_| "Mediary 系统代理 URL 无效".to_string())?;
+    match parsed.scheme() {
+        "socks5" | "socks5h" => {
+            params.proxy_url = Some(proxy_url.replacen(parsed.scheme(), "socks5", 1));
+            Ok((params, None))
+        }
+        "http" => {
+            let bridge = HttpConnectBridge::start(&proxy_url).await?;
+            params.proxy_url = Some(bridge.socks_url());
+            Ok((params, Some(bridge)))
+        }
+        "https" => Err("Telegram 暂不支持 HTTPS 代理端点，请使用 http:// 或 socks5://".to_string()),
+        _ => Err("Telegram 代理仅支持 http://、socks5:// 或 socks5h://".to_string()),
+    }
+}
+
+async fn configured_proxy_url(context: &PluginContext) -> Result<Option<String>, String> {
+    if let Ok(value) = env::var("MEDIARY_PLUGIN_PROXY_URL")
+        && !value.trim().is_empty()
+    {
+        return Ok(Some(value.trim().to_string()));
+    }
+    let response = context
+        .http
+        .get(format!("{}/settings", context.mediary_api_url))
+        .bearer_auth(&context.mediary_token)
+        .send()
+        .await
+        .map_err(|error| format!("读取 Mediary 系统代理失败: {error}"))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| format!("读取 Mediary 系统代理响应失败: {error}"))?;
+    if !status.is_success() {
+        return Err(if status == reqwest::StatusCode::FORBIDDEN {
+            "TG搜索插件缺少 settings:read 权限，请从商店更新后重新打开配置".to_string()
+        } else {
+            format!("读取 Mediary 系统代理失败: HTTP {}", status.as_u16())
+        });
+    }
+    let settings: Value = serde_json::from_str(&body)
+        .map_err(|error| format!("解析 Mediary 系统代理响应失败: {error}"))?;
+    Ok(settings
+        .get("tmdb_proxy_url")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string))
+}
+
+fn parse_http_proxy(proxy_url: &str) -> Result<HttpProxyConfig, String> {
+    let parsed = Url::parse(proxy_url).map_err(|_| "Mediary HTTP 代理 URL 无效".to_string())?;
+    if parsed.scheme() != "http" {
+        return Err("HTTP CONNECT 桥接只接受 http:// 代理".to_string());
+    }
+    let host = parsed
+        .host_str()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "Mediary HTTP 代理缺少主机".to_string())?
+        .to_string();
+    let port = parsed
+        .port_or_known_default()
+        .ok_or_else(|| "Mediary HTTP 代理缺少端口".to_string())?;
+    let authorization = if parsed.username().is_empty() {
+        None
+    } else {
+        let credentials = format!("{}:{}", parsed.username(), parsed.password().unwrap_or(""));
+        Some(format!("Basic {}", BASE64_STANDARD.encode(credentials)))
+    };
+    Ok(HttpProxyConfig {
+        host,
+        port,
+        authorization,
+    })
+}
+
+async fn run_http_connect_bridge(listener: TcpListener, config: HttpProxyConfig) {
+    let mut connections = JoinSet::new();
+    loop {
+        tokio::select! {
+            accepted = listener.accept() => match accepted {
+                Ok((stream, _)) => {
+                    let config = config.clone();
+                    connections.spawn(async move {
+                        if let Err(error) = proxy_socks_client(stream, config).await {
+                            eprintln!("Telegram HTTP 代理桥接连接失败: {error}");
+                        }
+                    });
+                }
+                Err(error) => {
+                    eprintln!("Telegram HTTP 代理桥接监听失败: {error}");
+                    break;
+                }
+            },
+            Some(_) = connections.join_next(), if !connections.is_empty() => {}
+        }
+    }
+}
+
+async fn proxy_socks_client(
+    mut client: TcpStream,
+    config: HttpProxyConfig,
+) -> Result<(), io::Error> {
+    let mut greeting = [0u8; 2];
+    client.read_exact(&mut greeting).await?;
+    if greeting[0] != 5 || greeting[1] == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "无效的 SOCKS5 握手",
+        ));
+    }
+    let mut methods = vec![0u8; greeting[1] as usize];
+    client.read_exact(&mut methods).await?;
+    if !methods.contains(&0) {
+        client.write_all(&[5, 0xff]).await?;
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "SOCKS5 客户端不支持免认证",
+        ));
+    }
+    client.write_all(&[5, 0]).await?;
+
+    let mut request = [0u8; 4];
+    client.read_exact(&mut request).await?;
+    if request[0] != 5 || request[1] != 1 {
+        send_socks_failure(&mut client, 7).await;
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "仅支持 SOCKS5 CONNECT",
+        ));
+    }
+    let target = read_socks_target(&mut client, request[3]).await?;
+    let mut upstream = match TcpStream::connect((config.host.as_str(), config.port)).await {
+        Ok(stream) => stream,
+        Err(error) => {
+            send_socks_failure(&mut client, 1).await;
+            return Err(error);
+        }
+    };
+    let request = http_connect_request(&target, config.authorization.as_deref());
+    upstream.write_all(request.as_bytes()).await?;
+    let status = read_http_connect_status(&mut upstream).await?;
+    if !(200..300).contains(&status) {
+        send_socks_failure(&mut client, 1).await;
+        return Err(io::Error::new(
+            io::ErrorKind::ConnectionRefused,
+            format!("HTTP 代理拒绝 CONNECT，状态码 {status}"),
+        ));
+    }
+    client.write_all(&[5, 0, 0, 1, 0, 0, 0, 0, 0, 0]).await?;
+    tokio::io::copy_bidirectional(&mut client, &mut upstream).await?;
+    Ok(())
+}
+
+async fn read_socks_target(client: &mut TcpStream, address_type: u8) -> Result<String, io::Error> {
+    let host = match address_type {
+        1 => {
+            let mut bytes = [0u8; 4];
+            client.read_exact(&mut bytes).await?;
+            IpAddr::from(bytes).to_string()
+        }
+        4 => {
+            let mut bytes = [0u8; 16];
+            client.read_exact(&mut bytes).await?;
+            format!("[{}]", IpAddr::from(bytes))
+        }
+        3 => {
+            let length = client.read_u8().await? as usize;
+            if length == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "SOCKS5 目标域名为空",
+                ));
+            }
+            let mut bytes = vec![0u8; length];
+            client.read_exact(&mut bytes).await?;
+            String::from_utf8(bytes)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "SOCKS5 目标域名无效"))?
+        }
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "SOCKS5 地址类型无效",
+            ));
+        }
+    };
+    let port = client.read_u16().await?;
+    Ok(format!("{host}:{port}"))
+}
+
+fn http_connect_request(target: &str, authorization: Option<&str>) -> String {
+    let authorization = authorization
+        .map(|value| format!("Proxy-Authorization: {value}\r\n"))
+        .unwrap_or_default();
+    format!(
+        "CONNECT {target} HTTP/1.1\r\nHost: {target}\r\nProxy-Connection: Keep-Alive\r\n{authorization}\r\n"
+    )
+}
+
+async fn read_http_connect_status(stream: &mut TcpStream) -> Result<u16, io::Error> {
+    let mut header = Vec::new();
+    let mut byte = [0u8; 1];
+    while header.len() < MAX_PROXY_RESPONSE_HEADER_BYTES {
+        if stream.read(&mut byte).await? == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "HTTP 代理提前关闭连接",
+            ));
+        }
+        header.push(byte[0]);
+        if header.ends_with(b"\r\n\r\n") {
+            let text = String::from_utf8_lossy(&header);
+            return text
+                .lines()
+                .next()
+                .and_then(|line| line.split_whitespace().nth(1))
+                .and_then(|value| value.parse::<u16>().ok())
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "HTTP 代理响应无效"));
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::InvalidData,
+        "HTTP 代理响应头过大",
+    ))
+}
+
+async fn send_socks_failure(client: &mut TcpStream, code: u8) {
+    let _ = client.write_all(&[5, code, 0, 1, 0, 0, 0, 0, 0, 0]).await;
 }
 
 fn read_payload() -> Result<Value, String> {
@@ -1217,10 +1506,71 @@ fn channel_username_regex() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::{
-        FLOWLINK_MOVE_ALL_DELAY_SECONDS, ResourceLinkKind, append_115_password,
+        FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind, append_115_password,
         classify_resource_link, extract_resource_links, mediary_link_submit_payload,
         normalize_channel_token, trim_link_punctuation,
     };
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::{TcpListener, TcpStream},
+    };
+
+    #[tokio::test]
+    async fn bridges_socks5_clients_through_an_http_connect_proxy() {
+        let proxy_listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let proxy_address = proxy_listener.local_addr().unwrap();
+        let proxy = tokio::spawn(async move {
+            let (mut stream, _) = proxy_listener.accept().await.unwrap();
+            let mut header = Vec::new();
+            let mut byte = [0u8; 1];
+            while !header.ends_with(b"\r\n\r\n") {
+                stream.read_exact(&mut byte).await.unwrap();
+                header.push(byte[0]);
+            }
+            let header = String::from_utf8(header).unwrap();
+            assert!(header.starts_with("CONNECT 149.154.167.50:443 HTTP/1.1\r\n"));
+            stream
+                .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                .await
+                .unwrap();
+            let mut ping = [0u8; 4];
+            stream.read_exact(&mut ping).await.unwrap();
+            assert_eq!(&ping, b"ping");
+            stream.write_all(b"pong").await.unwrap();
+        });
+
+        let bridge = HttpConnectBridge::start(&format!("http://{proxy_address}"))
+            .await
+            .unwrap();
+        let mut client = TcpStream::connect(bridge.address).await.unwrap();
+        client.write_all(&[5, 1, 0]).await.unwrap();
+        let mut greeting = [0u8; 2];
+        client.read_exact(&mut greeting).await.unwrap();
+        assert_eq!(greeting, [5, 0]);
+        client
+            .write_all(&[5, 1, 0, 1, 149, 154, 167, 50, 0x01, 0xbb])
+            .await
+            .unwrap();
+        let mut connected = [0u8; 10];
+        client.read_exact(&mut connected).await.unwrap();
+        assert_eq!(&connected[..2], &[5, 0]);
+        client.write_all(b"ping").await.unwrap();
+        let mut pong = [0u8; 4];
+        client.read_exact(&mut pong).await.unwrap();
+        assert_eq!(&pong, b"pong");
+        proxy.await.unwrap();
+    }
+
+    #[test]
+    fn manifest_requests_main_settings_for_proxy_reuse() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
+        assert_eq!(manifest["version"], "0.1.2");
+        assert_eq!(
+            manifest["requested_scopes"],
+            serde_json::json!(["integrations:run", "settings:read"])
+        );
+    }
 
     #[test]
     fn extracts_supported_links_and_attaches_115_password() {
