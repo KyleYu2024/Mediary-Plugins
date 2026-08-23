@@ -4,8 +4,8 @@
   "version": "1.0.1",
   "description": "同步一个或多个豆瓣用户最近标记的想看影视，识别 TMDB 后自动创建 Mediary 订阅",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.25/official/douban-wish",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.25/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.26/official/douban-wish",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.26/official",
   "license": "GPL-3.0-only",
   "api_version": 1,
   "min_mediary_version": "0.7.7",
@@ -16,24 +16,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/douban-wish-v1.0.1-linux-amd64.tar.gz",
-      "sha256": "ea03b2f5664b563c06e490bed5152fc972ad30c4c343401e1208960e7b9bac72",
-      "size": 3138490
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/douban-wish-v1.0.1-linux-amd64.tar.gz",
+      "sha256": "9dad9235310f9d6e05d18c9779d1da2fdf5eeeb2b70237b94a3529576d5800d1",
+      "size": 3132644
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/douban-wish-v1.0.1-linux-arm64.tar.gz",
-      "sha256": "a8471cb01b3614d4c018c42da0e816a4da62e79c29b18aa250650d590b5a5ef6",
-      "size": 3152281
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/douban-wish-v1.0.1-linux-arm64.tar.gz",
+      "sha256": "755af53385f668b4bbdebe94c63f6c565c30c7526630879754cf363e3ce75439",
+      "size": 3143352
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/douban-wish-v1.0.1-darwin-amd64.tar.gz",
-      "sha256": "2874207a3c1976fb2fec30aec5a113be511e9e5168b4c7bf7161590b12568376",
-      "size": 2966693
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/douban-wish-v1.0.1-darwin-amd64.tar.gz",
+      "sha256": "f214a18d6b68270c9a2823b25abe26271d5d00b902be11c4e13b2bb901baefaa",
+      "size": 2963254
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/douban-wish-v1.0.1-darwin-arm64.tar.gz",
-      "sha256": "9af8544426ffc01e32f8307fb30b3666528846ffb70ed20fac54242f02142b28",
-      "size": 2858037
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/douban-wish-v1.0.1-darwin-arm64.tar.gz",
+      "sha256": "5a662a9fb73201461847a45427433ba5776caf1759beebe960331276b0e85da9",
+      "size": 2848245
     }
   }
 }

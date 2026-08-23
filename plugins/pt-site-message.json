@@ -4,8 +4,8 @@
   "version": "0.1.2",
   "description": "每 6 小时读取选定 PT 站点的未读站内信，并按标题关键词过滤后发送通知",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.25/official/pt-site-message",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.25/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.26/official/pt-site-message",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.26/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.9.9",
@@ -15,24 +15,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/pt-site-message-v0.1.2-linux-amd64.tar.gz",
-      "sha256": "d6fcab68f8376f725e9be5c190b171f7dfbe26312d3af18e8e6f1d4289ddced3",
-      "size": 2139115
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/pt-site-message-v0.1.2-linux-amd64.tar.gz",
+      "sha256": "26030ad172d4df7ad5a8e3b745865ba5c7c5aef95b5360b67c7fc5b8ff8fc736",
+      "size": 2146631
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/pt-site-message-v0.1.2-linux-arm64.tar.gz",
-      "sha256": "84a65589bd34a9a6d432a6a6b72731379ec6381e12fef602cd4e580463cbe050",
-      "size": 2146972
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/pt-site-message-v0.1.2-linux-arm64.tar.gz",
+      "sha256": "c271503802549df8dbbae9caa37ff6546f2c8e6e93a629d72f239f1dd3c37714",
+      "size": 2147752
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/pt-site-message-v0.1.2-darwin-amd64.tar.gz",
-      "sha256": "cf62eb0cf70448345de4b8bf7c48ffa9030d0f7029793d667060007790c18fef",
-      "size": 2029853
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/pt-site-message-v0.1.2-darwin-amd64.tar.gz",
+      "sha256": "cc4eca1ea6da2c993144f0ae197309ae2cbe13b5d78322926e3e9599a1142330",
+      "size": 2031298
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.25/pt-site-message-v0.1.2-darwin-arm64.tar.gz",
-      "sha256": "e1d85760143aff5f266e2834c4213daf90e6d3494965da30e52eaaf5d1ebf5c6",
-      "size": 1960643
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.26/pt-site-message-v0.1.2-darwin-arm64.tar.gz",
+      "sha256": "921d4b6d0da3c9c003ee500d9201a1ab6218257899e65b7aef1ead511674652c",
+      "size": 1960839
     }
   }
 }
