@@ -2,11 +2,23 @@
   "api_version": 1,
   "id": "pansou",
   "name": "盘搜",
-  "version": "0.1.3",
-  "description": "聚合搜索 115 分享、磁力与 ed2k 资源，由 Mediary 分别执行转存整理或 115 离线下载",
+  "version": "0.2.0",
+  "description": "聚合搜索 115 分享、磁力与 ed2k 资源；115 分享和 ed2k 进入 FlowLink 转存整理，磁力提交 115 离线下载",
   "action_runtime": {
     "entrypoint": "./plugin"
   },
+  "resource_search": {
+    "source_id": -4,
+    "name": "盘搜",
+    "action": "resource_search",
+    "transfer_action": "submit",
+    "default_selected": true,
+    "timeout_seconds": 45
+  },
+  "requested_scopes": [
+    "integrations:run"
+  ],
+  "auto_grant_scopes": true,
   "secret_fields": [
     "password"
   ],

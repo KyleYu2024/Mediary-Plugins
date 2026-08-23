@@ -32,7 +32,7 @@ const minimumMediaryVersions = {
   'douban-coming-notice': '0.8.10',
   'douban-wish': '0.7.7',
   'maoyan-rank': '0.7.7',
-  pansou: '0.7.7',
+  pansou: '1.8.0',
   'tmdb-trending': '0.8.1',
   'subscribe-reminder': '0.8.10',
   seerr: '1.9.0',
