@@ -32,6 +32,16 @@ async fn run() -> Result<(), String> {
             println!("{value}");
             Ok(())
         }
+        "resource_search" => {
+            let value = resource_search(&settings, &payload).await?;
+            println!("{value}");
+            Ok(())
+        }
+        "submit" => {
+            let value = submit_link(&payload).await?;
+            println!("{value}");
+            Ok(())
+        }
         _ => Err(format!("不支持的盘搜动作: {action}")),
     }
 }
@@ -95,6 +105,72 @@ async fn search(settings: &Map<String, Value>, payload: &Value) -> Result<Value,
         }))
     } else {
         Ok(json!({"items": items}))
+    }
+}
+
+async fn resource_search(settings: &Map<String, Value>, payload: &Value) -> Result<Value, String> {
+    let response = search(settings, payload).await?;
+    let items = response
+        .get("items")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    Ok(json!({"results": host_resource_results(&items)}))
+}
+
+async fn submit_link(payload: &Value) -> Result<Value, String> {
+    let link = payload
+        .get("link")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "提交链接不能为空".to_string())?;
+    classify_link(link).ok_or_else(|| "仅支持 115 分享、magnet 或 ed2k 链接".to_string())?;
+    let api_url = env::var("MEDIARY_PLUGIN_API_URL")
+        .map_err(|_| "插件运行环境缺少 MEDIARY_PLUGIN_API_URL".to_string())?;
+    let token = env::var("MEDIARY_PLUGIN_TOKEN")
+        .map_err(|_| "插件运行环境缺少 MEDIARY_PLUGIN_TOKEN".to_string())?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(45))
+        .build()
+        .map_err(|error| format!("创建 Mediary 客户端失败: {error}"))?;
+    let response = client
+        .post(format!("{}/link/submit", api_url.trim_end_matches('/')))
+        .bearer_auth(token)
+        .json(&mediary_link_submit_payload(link))
+        .send()
+        .await
+        .map_err(|error| format!("提交资源到 Mediary 失败: {error}"))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| format!("读取 Mediary 响应失败: {error}"))?;
+    let value = serde_json::from_str::<Value>(&body)
+        .map_err(|error| format!("解析 Mediary 响应失败: {error}"))?;
+    if !status.is_success() {
+        let message = value
+            .get("error")
+            .and_then(Value::as_str)
+            .unwrap_or("资源提交失败");
+        return Err(format!("{message} (HTTP {})", status.as_u16()));
+    }
+    let notice = value
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("资源已提交处理");
+    Ok(json!({"notice": notice}))
+}
+
+fn mediary_link_submit_payload(link: &str) -> Value {
+    if link.trim().to_ascii_lowercase().starts_with("ed2k://") {
+        json!({
+            "link": link,
+            "offline_target": "transfer",
+            "flowlink_move_all_delay_seconds": 10
+        })
+    } else {
+        json!({"link": link})
     }
 }
 
@@ -185,12 +261,12 @@ fn normalize_results(value: &Value) -> (Vec<Value>, bool) {
                 "ed2k" => (
                     "ed2k",
                     "info",
-                    "离线下载",
-                    "下载中",
-                    "download",
-                    "info",
-                    "已提交到 115 离线下载。",
-                    "离线提交失败，请检查 115 Web Cookie 和离线下载目录配置。",
+                    "转存整理",
+                    "转存中",
+                    "folder-input",
+                    "success",
+                    "已提交到 115 转存目录，并将在 10 秒后触发 FlowLink 整理。",
+                    "转存提交失败，请检查 115 转存目录和 FlowLink 配置。",
                 ),
                 _ => (
                     "磁力",
@@ -202,6 +278,30 @@ fn normalize_results(value: &Value) -> (Vec<Value>, bool) {
                     "已提交到 115 离线下载。",
                     "离线提交失败，请检查 115 Web Cookie 和离线下载目录配置。",
                 ),
+            };
+            let submit_action = if disk_type == "ed2k" {
+                json!({
+                    "type": "plugin_action",
+                    "action": "submit",
+                    "label": submit_label,
+                    "pending_label": pending_label,
+                    "icon": submit_icon,
+                    "tone": action_tone,
+                    "payload": {"link": link},
+                    "success_message": success_message,
+                    "error_message": error_message
+                })
+            } else {
+                json!({
+                    "type": "link_submit",
+                    "label": submit_label,
+                    "pending_label": pending_label,
+                    "icon": submit_icon,
+                    "tone": action_tone,
+                    "value": link,
+                    "success_message": success_message,
+                    "error_message": error_message
+                })
             };
             let result = json!({
                 "key": link,
@@ -219,16 +319,7 @@ fn normalize_results(value: &Value) -> (Vec<Value>, bool) {
                     "value": link,
                     "success_message": "资源链接已复制。",
                     "error_message": "复制失败，请检查浏览器剪贴板权限。"
-                }, {
-                    "type": "link_submit",
-                    "label": submit_label,
-                    "pending_label": pending_label,
-                    "icon": submit_icon,
-                    "tone": action_tone,
-                    "value": link,
-                    "success_message": success_message,
-                    "error_message": error_message
-                }]
+                }, submit_action]
             });
             let result_bytes = serde_json::to_vec(&result)
                 .map(|value| value.len() + 1)
@@ -242,6 +333,89 @@ fn normalize_results(value: &Value) -> (Vec<Value>, bool) {
         }
     }
     (results, truncated)
+}
+
+fn host_resource_results(items: &[Value]) -> Vec<Value> {
+    items
+        .iter()
+        .filter_map(|item| {
+            let link = item
+                .get("actions")?
+                .as_array()?
+                .iter()
+                .find(|action| action.get("type").and_then(Value::as_str) == Some("copy"))?
+                .get("value")?
+                .as_str()?
+                .to_string();
+            let disk_type = classify_link(&link)?;
+            let title = item
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("未命名资源")
+                .to_string();
+            let metadata = item
+                .get("metadata")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let size_text = metadata.first().and_then(Value::as_str).unwrap_or_default();
+            let description = metadata
+                .iter()
+                .filter_map(Value::as_str)
+                .filter(|value| !value.is_empty() && *value != "未知")
+                .collect::<Vec<_>>()
+                .join(" · ");
+            let category = match disk_type {
+                "115" => "115",
+                "ed2k" => "ed2k",
+                _ => "磁力",
+            };
+            let transfer = disk_type != "magnet";
+            Some(json!({
+                "title": title,
+                "size": parse_size_bytes(size_text),
+                "download_url": link,
+                "description": description,
+                "category": category,
+                "seeders": 0,
+                "leechers": 0,
+                "labels": [category],
+                "hit_and_run": false,
+                "plugin_key": link,
+                "plugin_payload": {"link": link},
+                "plugin_action_kind": if transfer { "transfer" } else { "download" },
+                "plugin_action_label": if transfer { "转存整理" } else { "离线下载" },
+                "plugin_action_pending_label": if transfer { "转存中" } else { "下载中" },
+                "parsed": {
+                    "title": title,
+                    "raw_title": title
+                }
+            }))
+        })
+        .collect()
+}
+
+fn parse_size_bytes(value: &str) -> u64 {
+    let normalized = value.trim().to_ascii_uppercase().replace(' ', "");
+    let number_end = normalized
+        .char_indices()
+        .find(|(_, character)| !character.is_ascii_digit() && *character != '.')
+        .map(|(index, _)| index)
+        .unwrap_or(normalized.len());
+    let Ok(number) = normalized[..number_end].parse::<f64>() else {
+        return 0;
+    };
+    let unit = normalized[number_end..].trim_end_matches('B');
+    let multiplier = match unit {
+        "" => 1_f64,
+        "K" | "KI" => 1024_f64,
+        "M" | "MI" => 1024_f64.powi(2),
+        "G" | "GI" => 1024_f64.powi(3),
+        "T" | "TI" => 1024_f64.powi(4),
+        "P" | "PI" => 1024_f64.powi(5),
+        _ => return 0,
+    };
+    (number * multiplier).round().clamp(0.0, u64::MAX as f64) as u64
 }
 
 fn classify_link(link: &str) -> Option<&'static str> {
@@ -309,7 +483,10 @@ fn setting<'a>(settings: &'a Map<String, Value>, key: &str) -> &'a str {
 
 #[cfg(test)]
 mod tests {
-    use super::{MAX_RESULTS, append_password, classify_link, normalize_results};
+    use super::{
+        MAX_RESULTS, append_password, classify_link, host_resource_results,
+        mediary_link_submit_payload, normalize_results, parse_size_bytes,
+    };
     use serde_json::json;
 
     #[test]
@@ -359,7 +536,7 @@ mod tests {
         }));
         assert!(items.iter().any(|item| {
             item["badges"][0]["label"] == "ed2k"
-                && item["actions"][1]["value"]
+                && item["actions"][1]["payload"]["link"]
                     == "ed2k://|file|%5B%E9%98%BF%E5%87%A1%E8%BE%BE%5D.Avatar.mkv|1|ABC|/"
         }));
     }
@@ -389,7 +566,7 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0]["badges"][0]["label"], "ed2k");
         assert_eq!(
-            items[0]["actions"][1]["value"],
+            items[0]["actions"][1]["payload"]["link"],
             "ed2k://|file|movie.mkv|1|ABC|/"
         );
     }
@@ -415,6 +592,41 @@ mod tests {
         assert_eq!(append_password(link.clone(), "5678".into()), link);
         let uppercase = "https://115.com/s/example?PASSWORD=1234".to_string();
         assert_eq!(append_password(uppercase.clone(), "5678".into()), uppercase);
+    }
+
+    #[test]
+    fn ed2k_uses_transfer_directory_and_schedules_flowlink() {
+        let payload = mediary_link_submit_payload("ed2k://|file|movie.mkv|1|HASH|/");
+        assert_eq!(payload["offline_target"], "transfer");
+        assert_eq!(payload["flowlink_move_all_delay_seconds"], 10);
+
+        let magnet = mediary_link_submit_payload("magnet:?xt=urn:btih:ABC");
+        assert!(magnet.get("offline_target").is_none());
+        let share = mediary_link_submit_payload("https://115.com/s/example");
+        assert!(share.get("offline_target").is_none());
+    }
+
+    #[test]
+    fn maps_interactive_items_to_native_resource_results() {
+        let value = json!({"merged_by_type": {
+            "ed2k": [{
+                "link": "ed2k://|file|movie.mkv|1|HASH|/",
+                "title": "电影资源",
+                "size": "1.5 GB",
+                "source": "测试源"
+            }]
+        }});
+        let (items, _) = normalize_results(&value);
+        let results = host_resource_results(&items);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0]["size"], 1_610_612_736_u64);
+        assert_eq!(results[0]["plugin_action_kind"], "transfer");
+        assert_eq!(results[0]["plugin_action_label"], "转存整理");
+        assert_eq!(
+            results[0]["plugin_payload"]["link"],
+            "ed2k://|file|movie.mkv|1|HASH|/"
+        );
+        assert_eq!(parse_size_bytes("10 GB"), 10 * 1024 * 1024 * 1024);
     }
 
     #[test]
