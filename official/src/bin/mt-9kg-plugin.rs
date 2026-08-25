@@ -73,7 +73,11 @@ impl PluginContext {
 }
 
 async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Value, String> {
-    let query = required_text(payload, "query")?;
+    let query = payload
+        .get("query")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .unwrap_or_default();
     let limit = context
         .settings
         .result_limit
@@ -90,7 +94,7 @@ async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Val
         .get(format!("{}/plugin/torrents", context.api_url))
         .bearer_auth(&context.token)
         .query(&[
-            ("keyword", query.as_str()),
+            ("keyword", query),
             ("limit", limit_text.as_str()),
             ("free_only", free_only_text),
             ("mteam_mode", "adult"),

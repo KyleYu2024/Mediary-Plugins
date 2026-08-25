@@ -50,9 +50,9 @@ jobs:
       - name: Upload Linux AMD64 package
         uses: actions/upload-artifact@v4
         with:
-          name: mt-9kg-v0.1.0-linux-amd64
+          name: mt-9kg-v0.1.1-linux-amd64
           path: |
-            dist/mt-9kg-v0.1.0-linux-amd64.tar.gz
+            dist/mt-9kg-v0.1.1-linux-amd64.tar.gz
             dist/SHA256SUMS
           if-no-files-found: error
           retention-days: 7
