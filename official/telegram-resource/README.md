@@ -8,6 +8,7 @@
 - 仅搜索插件配置中明确列出的公开频道；
 - 从消息正文、文本链接和按钮链接中识别 115 分享、magnet 与 ed2k；
 - 在 Mediary“资源搜索”中注册为 Telegram 搜索源；
+- 搜索框留空时，按时间倒序返回各频道最新资源；
 - 115 分享提交给 FlowLink 转存整理；
 - magnet 与 ed2k 提交到 Mediary 配置的 115 转存监控目录，并在 10 秒后触发一次 FlowLink `move all`；
 - 推送前重新读取 Telegram 原消息并校验链接。
