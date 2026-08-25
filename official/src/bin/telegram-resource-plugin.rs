@@ -701,7 +701,12 @@ async fn logout(context: &PluginContext) -> Result<Value, String> {
 }
 
 async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Value, String> {
-    let query = required_text(payload, "query")?;
+    let query = payload
+        .get("query")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .unwrap_or_default()
+        .to_string();
     let credentials = credentials_from_settings(&context.settings)?;
     let channels = configured_channels(&context.settings)?;
     if channels.is_empty() {
@@ -750,6 +755,12 @@ async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Val
             failures.into_iter().take(3).collect::<Vec<_>>().join("；")
         ));
     }
+    results.sort_by(|left, right| {
+        right
+            .get("publish_time")
+            .and_then(Value::as_str)
+            .cmp(&left.get("publish_time").and_then(Value::as_str))
+    });
     Ok(json!({"results": results}))
 }
 
@@ -769,33 +780,46 @@ async fn search_channel(
         .await
         .map_err(|error| format!("解析频道引用失败: {error}"))?
         .ok_or_else(|| "无法获取频道访问凭据，请确认账号已加入该频道".to_string())?;
-    let mut messages = client
-        .search_messages(peer_ref)
-        .query(query)
-        .limit(message_limit);
     let mut items = Vec::new();
-    while let Some(message) = messages
-        .next()
-        .await
-        .map_err(|error| format_telegram_error("搜索消息失败", &error))?
-    {
-        let links = extract_message_links(&message);
-        for link in links {
-            let global_key = format!("{}:{}", public_username.to_ascii_lowercase(), link.key);
-            if !seen.insert(global_key) {
-                continue;
-            }
-            items.push(resource_result_item(
+    if query.is_empty() {
+        let mut messages = client.iter_messages(peer_ref).limit(message_limit);
+        while let Some(message) = messages
+            .next()
+            .await
+            .map_err(|error| format_telegram_error("读取最新消息失败", &error))?
+        {
+            append_message_resources(
+                &mut items,
                 &message,
                 &channel_name,
                 &public_username,
-                &link,
-            ));
+                result_limit,
+                seen,
+            );
             if items.len() >= result_limit {
-                return Ok(ChannelSearchResult {
-                    items,
-                    searched: true,
-                });
+                break;
+            }
+        }
+    } else {
+        let mut messages = client
+            .search_messages(peer_ref)
+            .query(query)
+            .limit(message_limit);
+        while let Some(message) = messages
+            .next()
+            .await
+            .map_err(|error| format_telegram_error("搜索消息失败", &error))?
+        {
+            append_message_resources(
+                &mut items,
+                &message,
+                &channel_name,
+                &public_username,
+                result_limit,
+                seen,
+            );
+            if items.len() >= result_limit {
+                break;
             }
         }
     }
@@ -803,6 +827,31 @@ async fn search_channel(
         items,
         searched: true,
     })
+}
+
+fn append_message_resources(
+    items: &mut Vec<Value>,
+    message: &Message,
+    channel_name: &str,
+    public_username: &str,
+    result_limit: usize,
+    seen: &mut HashSet<String>,
+) {
+    for link in extract_message_links(message) {
+        let global_key = format!("{}:{}", public_username.to_ascii_lowercase(), link.key);
+        if !seen.insert(global_key) {
+            continue;
+        }
+        items.push(resource_result_item(
+            message,
+            channel_name,
+            public_username,
+            &link,
+        ));
+        if items.len() >= result_limit {
+            break;
+        }
+    }
 }
 
 async fn resolve_public_channel(client: &TelegramClient, username: &str) -> Result<Peer, String> {
@@ -1565,7 +1614,7 @@ mod tests {
     fn manifest_requests_main_settings_for_proxy_reuse() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.1.2");
+        assert_eq!(manifest["version"], "0.1.3");
         assert_eq!(
             manifest["requested_scopes"],
             serde_json::json!(["integrations:run", "settings:read"])
