@@ -1,4 +1,5 @@
 use chrono::{Datelike, Duration as ChronoDuration, Local};
+use regex::Regex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -13,6 +14,7 @@ const MAOYAN_BASE_URL: &str = "https://piaofang.maoyan.com";
 const USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/121 Safari/537.36";
 const MAX_HISTORY_ITEMS: usize = 5_000;
+const DEFAULT_TV_SEASON: i32 = 1;
 
 #[derive(Clone, Deserialize)]
 struct Settings {
@@ -355,9 +357,20 @@ async fn resolve_tmdb(
     context: &PluginContext,
     candidate: &Candidate,
 ) -> Result<ResolvedMedia, String> {
+    let target_season = candidate_tv_season(candidate);
+    let search_title = if target_season.is_some() {
+        strip_season(&candidate.title)
+    } else {
+        candidate.title.clone()
+    };
+    let search_year = if target_season.is_some_and(|season| season > DEFAULT_TV_SEASON) {
+        None
+    } else {
+        candidate.year
+    };
     let body = json!({
-        "title": candidate.title,
-        "year": candidate.year,
+        "title": search_title,
+        "year": search_year,
         "media_type": candidate.media_type,
     });
     let response = plugin_api(context, "/tmdb/resolve", body).await?;
@@ -368,8 +381,170 @@ async fn resolve_tmdb(
             .unwrap_or("TMDB 未匹配")
             .to_string());
     }
-    serde_json::from_value(response.get("data").cloned().unwrap_or(response))
-        .map_err(|error| error.to_string())
+    let mut resolved: ResolvedMedia =
+        serde_json::from_value(response.get("data").cloned().unwrap_or(response))
+            .map_err(|error| error.to_string())?;
+    enrich_tv_episode_count(context, candidate, &mut resolved).await?;
+    Ok(resolved)
+}
+
+async fn enrich_tv_episode_count(
+    context: &PluginContext,
+    candidate: &Candidate,
+    resolved: &mut ResolvedMedia,
+) -> Result<(), String> {
+    let Some(target_season) = target_tv_season(candidate, resolved) else {
+        resolved.expected_episodes = None;
+        return Ok(());
+    };
+
+    let tmdb_id = resolved
+        .tmdb_id
+        .trim()
+        .parse::<i32>()
+        .ok()
+        .filter(|value| *value > 0)
+        .ok_or_else(|| format!("TMDB ID 无效: {}", resolved.tmdb_id))?;
+    let details = plugin_api_get(
+        context,
+        &format!("/search/tmdb/details?id={tmdb_id}&media_type=tv"),
+    )
+    .await
+    .map_err(|error| format!("获取 TMDB 第 {target_season} 季详情失败: {error}"))?;
+    let episode_count = tmdb_season_episode_count(&details, target_season).ok_or_else(|| {
+        format!("TMDB 详情未提供第 {target_season} 季的有效总集数，已跳过创建订阅")
+    })?;
+    resolved.expected_episodes = Some(episode_count);
+    Ok(())
+}
+
+fn tmdb_season_episode_count(details: &Value, season_number: i32) -> Option<i32> {
+    details
+        .get("seasons")
+        .and_then(Value::as_array)
+        .or_else(|| {
+            details
+                .get("details")
+                .and_then(|value| value.get("seasons"))
+                .and_then(Value::as_array)
+        })?
+        .iter()
+        .find_map(|season| {
+            let number = json_positive_i32(season.get("season_number"))?;
+            (number == season_number)
+                .then(|| json_positive_i32(season.get("episode_count")))
+                .flatten()
+        })
+}
+
+fn json_positive_i32(value: Option<&Value>) -> Option<i32> {
+    value
+        .and_then(Value::as_i64)
+        .and_then(|value| i32::try_from(value).ok())
+        .filter(|value| *value > 0)
+}
+
+fn resolved_media_type<'a>(candidate: &'a Candidate, resolved: &'a ResolvedMedia) -> &'a str {
+    if resolved.media_type.trim().is_empty() {
+        candidate.media_type.as_str()
+    } else {
+        resolved.media_type.as_str()
+    }
+}
+
+fn candidate_tv_season(candidate: &Candidate) -> Option<i32> {
+    (candidate.media_type == "tv").then(|| extract_season(&candidate.title).unwrap_or(1))
+}
+
+fn target_tv_season(candidate: &Candidate, resolved: &ResolvedMedia) -> Option<i32> {
+    (resolved_media_type(candidate, resolved) == "tv").then(|| {
+        extract_season(&candidate.title)
+            .or_else(|| extract_season(&resolved.title))
+            .unwrap_or(DEFAULT_TV_SEASON)
+    })
+}
+
+fn extract_season(title: &str) -> Option<i32> {
+    for pattern in [
+        r"(?i)(?:第\s*)?(\d{1,2})\s*季",
+        r"(?i)\bS\s*(\d{1,2})\b",
+        r"(?i)\bSeason\s*(\d{1,2})\b",
+    ] {
+        if let Some(value) = Regex::new(pattern)
+            .unwrap()
+            .captures(title)
+            .and_then(|captures| captures.get(1))
+            .and_then(|value| value.as_str().parse::<i32>().ok())
+            .filter(|value| *value > 0)
+        {
+            return Some(value);
+        }
+    }
+    Regex::new(r"第([一二三四五六七八九十]{1,3})季")
+        .unwrap()
+        .captures(title)
+        .and_then(|captures| captures.get(1))
+        .and_then(|value| chinese_number(value.as_str()))
+        .or_else(|| extract_trailing_season(title))
+}
+
+fn strip_season(title: &str) -> String {
+    let mut value = title.to_string();
+    for pattern in [
+        r"(?i)\s*(?:第\s*)?\d{1,2}\s*季\s*$",
+        r"\s*第[一二三四五六七八九十]{1,3}季\s*$",
+        r"(?i)\s+S\s*\d{1,2}\s*$",
+        r"(?i)\s+Season\s*\d{1,2}\s*$",
+    ] {
+        value = Regex::new(pattern).unwrap().replace(&value, "").to_string();
+    }
+    if let Some(captures) = Regex::new(r"(?:^|[^0-9])(\d{1,2})\s*$")
+        .unwrap()
+        .captures(&value)
+        && let Some(number) = captures.get(1)
+    {
+        value.truncate(number.start());
+    }
+    let value = value.trim();
+    if value.is_empty() {
+        title.trim()
+    } else {
+        value
+    }
+    .to_string()
+}
+
+fn extract_trailing_season(title: &str) -> Option<i32> {
+    Regex::new(r"(?:^|[^0-9])(\d{1,2})\s*$")
+        .unwrap()
+        .captures(title.trim())
+        .and_then(|captures| captures.get(1))
+        .and_then(|value| value.as_str().parse::<i32>().ok())
+        .filter(|value| *value > 0)
+}
+
+fn chinese_number(value: &str) -> Option<i32> {
+    let digit = |character| match character {
+        '一' => Some(1),
+        '二' => Some(2),
+        '三' => Some(3),
+        '四' => Some(4),
+        '五' => Some(5),
+        '六' => Some(6),
+        '七' => Some(7),
+        '八' => Some(8),
+        '九' => Some(9),
+        _ => None,
+    };
+    if value == "十" {
+        return Some(10);
+    }
+    if let Some((head, tail)) = value.split_once('十') {
+        let tens = head.chars().next().and_then(digit).unwrap_or(1);
+        let ones = tail.chars().next().and_then(digit).unwrap_or(0);
+        return Some(tens * 10 + ones);
+    }
+    value.chars().next().and_then(digit)
 }
 
 async fn create_subscription(
@@ -377,16 +552,14 @@ async fn create_subscription(
     candidate: &Candidate,
     resolved: &ResolvedMedia,
 ) -> Result<(), String> {
-    let media_type = if resolved.media_type.trim().is_empty() {
-        candidate.media_type.as_str()
-    } else {
-        resolved.media_type.as_str()
-    };
+    let media_type = resolved_media_type(candidate, resolved);
+    let season = target_tv_season(candidate, resolved);
     let body = json!({
         "tmdb_id": resolved.tmdb_id,
         "name": if resolved.title.trim().is_empty() { &candidate.title } else { &resolved.title },
         "year": resolved.year.or(candidate.year),
-        "season": (media_type == "tv").then_some(1),
+        "season": season,
+        "season_start_episode": (media_type == "tv").then_some(1),
         "media_type": media_type,
         "poster_path": resolved.poster_path,
         "backdrop_path": resolved.backdrop_path,
@@ -423,15 +596,11 @@ fn existing_subscription_key(subscription: &Value) -> Option<String> {
 }
 
 fn resolved_subscription_key(candidate: &Candidate, resolved: &ResolvedMedia) -> String {
-    let media_type = if resolved.media_type.trim().is_empty() {
-        candidate.media_type.as_str()
-    } else {
-        resolved.media_type.as_str()
-    };
+    let media_type = resolved_media_type(candidate, resolved);
     subscription_key(
         media_type,
         resolved.tmdb_id.trim(),
-        (media_type == "tv").then_some(1),
+        target_tv_season(candidate, resolved),
     )
 }
 
@@ -764,5 +933,78 @@ mod tests {
             existing_subscription_key(&existing),
             Some(resolved_subscription_key(&candidate, &resolved))
         );
+    }
+
+    #[test]
+    fn extracts_target_season_and_strips_it_from_tmdb_search_title() {
+        for (title, season, search_title) in [
+            ("庆余年2", 2, "庆余年"),
+            ("谜探路德维希 第二季", 2, "谜探路德维希"),
+            ("Slow Horses Season 6", 6, "Slow Horses"),
+            ("流人 S06", 6, "流人"),
+        ] {
+            assert_eq!(extract_season(title), Some(season));
+            assert_eq!(strip_season(title), search_title);
+        }
+        assert_eq!(extract_season("新剧"), None);
+        assert_eq!(extract_season("惩罚者 2017"), None);
+    }
+
+    #[test]
+    fn subscription_identity_uses_season_from_maoyan_title() {
+        let candidate = candidate(
+            "庆余年2".to_string(),
+            "tv",
+            "web-tv",
+            String::new(),
+            String::new(),
+        );
+        let resolved = ResolvedMedia {
+            tmdb_id: "242143".to_string(),
+            title: "庆余年".to_string(),
+            media_type: "tv".to_string(),
+            year: None,
+            poster_path: None,
+            backdrop_path: None,
+            vote_average: None,
+            description: None,
+            expected_episodes: Some(36),
+        };
+
+        assert_eq!(
+            resolved_subscription_key(&candidate, &resolved),
+            "tv:242143:2"
+        );
+    }
+
+    #[test]
+    fn reads_episode_count_from_requested_tmdb_season() {
+        let details = json!({
+            "number_of_episodes": 30,
+            "seasons": [
+                {"season_number": 0, "episode_count": 2},
+                {"season_number": 1, "episode_count": 12},
+                {"season_number": 2, "episode_count": 16}
+            ]
+        });
+
+        assert_eq!(tmdb_season_episode_count(&details, 1), Some(12));
+        assert_eq!(tmdb_season_episode_count(&details, 2), Some(16));
+    }
+
+    #[test]
+    fn rejects_missing_or_zero_tmdb_season_episode_count() {
+        let missing = json!({
+            "details": {
+                "number_of_episodes": 30,
+                "seasons": [{"season_number": 2, "episode_count": 16}]
+            }
+        });
+        let zero = json!({
+            "seasons": [{"season_number": 1, "episode_count": 0}]
+        });
+
+        assert_eq!(tmdb_season_episode_count(&missing, 1), None);
+        assert_eq!(tmdb_season_episode_count(&zero, 1), None);
     }
 }
