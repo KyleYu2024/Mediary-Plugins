@@ -4,8 +4,8 @@
   "version": "0.3.0",
   "description": "按国内剧集、国外剧集、国内电影、国外电影和动漫浏览 TMDB 热门内容",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.28/official/tmdb-trending",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.28/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.29/official/tmdb-trending",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.29/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "0.8.1",
@@ -15,24 +15,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.28/tmdb-trending-v0.3.0-linux-amd64.tar.gz",
-      "sha256": "7b94e20fd5380c6b095a01beaf138d5a7de0ea7c480e25516a47f04c9b5051eb",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.29/tmdb-trending-v0.3.0-linux-amd64.tar.gz",
+      "sha256": "a27dfc6ffa89748219ed025623c5779f20d66b26b863b4916018e01c17a33495",
       "size": 2265668
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.28/tmdb-trending-v0.3.0-linux-arm64.tar.gz",
-      "sha256": "03383423bc7a34dcdf4ffed331f96886f6b72ae3a9e54e3e38414ce37ef15dbc",
-      "size": 2271330
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.29/tmdb-trending-v0.3.0-linux-arm64.tar.gz",
+      "sha256": "7b59c909ca2db677d60016bb8e3ac7b0f8c39d2edf16bd904149008a316706d8",
+      "size": 2271342
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.28/tmdb-trending-v0.3.0-darwin-amd64.tar.gz",
-      "sha256": "04be45a651d604fa585ef2c4fbf74e102e43c021d0062ecd4ec1706c628f8143",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.29/tmdb-trending-v0.3.0-darwin-amd64.tar.gz",
+      "sha256": "3112f4e538982fa2c19b9ba83bbea42469c62c5358d641def0fa800a89cf997b",
       "size": 2149443
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.28/tmdb-trending-v0.3.0-darwin-arm64.tar.gz",
-      "sha256": "06bf6d0cdf2f8f3de58b62d40c301d4bd2e6efae0c93d24e552f042d71b83629",
-      "size": 2078843
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.29/tmdb-trending-v0.3.0-darwin-arm64.tar.gz",
+      "sha256": "fbbd95a6bfb9276c0b93df1a38ab4733e48c6a60150fcc3b31a6809e5953ec19",
+      "size": 2078840
     }
   }
 }
