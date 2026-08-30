@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "maoyan-rank",
   "name": "猫眼榜单订阅",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "定时读取猫眼榜单，解析 TMDB 后自动创建 Mediary 订阅",
   "action_runtime": {
     "entrypoint": "./plugin"
