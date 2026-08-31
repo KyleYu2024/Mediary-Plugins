@@ -2355,7 +2355,7 @@ mod tests {
     fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.3");
+        assert_eq!(manifest["version"], "0.2.4");
         assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
         assert!(manifest.get("scheduled_actions").is_none());
         let fields = manifest["settings_schema"]["sections"]
