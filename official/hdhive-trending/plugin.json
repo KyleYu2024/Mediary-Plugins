@@ -1,0 +1,134 @@
+{
+  "api_version": 1,
+  "id": "hdhive-trending",
+  "name": "影巢趋势",
+  "version": "0.1.0",
+  "description": "每 6 小时读取影巢 TG 频道的官组发布，按 Mediary 二级分类自动创建订阅",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "scheduled_actions": [
+    {
+      "action": "refresh",
+      "label": "立即检查",
+      "manual": true,
+      "cron_setting": "cron",
+      "timeout_seconds": 300
+    }
+  ],
+  "requested_scopes": [
+    "catalog:read",
+    "filters:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "auto_grant_scopes": true,
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "运行设置",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": false
+          },
+          {
+            "key": "cron",
+            "type": "text",
+            "label": "检查周期",
+            "default": "0 */6 * * *",
+            "placeholder": "0 */6 * * *",
+            "help": "默认每 6 小时检查一次，使用 Mediary 所在时区。"
+          }
+        ]
+      },
+      {
+        "title": "趋势筛选",
+        "fields": [
+          {
+            "key": "secondary_categories",
+            "type": "multiselect",
+            "label": "二级分类",
+            "default": [
+              "英文动画-电影",
+              "日漫-剧场版",
+              "国漫-电影版",
+              "纪录片-电影版",
+              "电影-中文",
+              "电影-外文",
+              "国漫",
+              "日漫-TV版",
+              "英文动画-TV版",
+              "纪录片",
+              "综艺",
+              "电视剧-中文",
+              "电视剧-日韩",
+              "电视剧-欧美"
+            ],
+            "options": [
+              { "label": "英文动画-电影", "value": "英文动画-电影" },
+              { "label": "日漫-剧场版", "value": "日漫-剧场版" },
+              { "label": "国漫-电影版", "value": "国漫-电影版" },
+              { "label": "纪录片-电影版", "value": "纪录片-电影版" },
+              { "label": "电影-中文", "value": "电影-中文" },
+              { "label": "电影-外文", "value": "电影-外文" },
+              { "label": "国漫", "value": "国漫" },
+              { "label": "日漫-TV版", "value": "日漫-TV版" },
+              { "label": "英文动画-TV版", "value": "英文动画-TV版" },
+              { "label": "纪录片", "value": "纪录片" },
+              { "label": "综艺", "value": "综艺" },
+              { "label": "电视剧-中文", "value": "电视剧-中文" },
+              { "label": "电视剧-日韩", "value": "电视剧-日韩" },
+              { "label": "电视剧-欧美", "value": "电视剧-欧美" }
+            ],
+            "span": 2
+          },
+          {
+            "key": "publishers",
+            "type": "text",
+            "label": "官组发布者",
+            "default": "白可乐,冷,新疆美味三文鱼,Pluto,最爱你的人望眼欲穿",
+            "placeholder": "白可乐,冷,新疆美味三文鱼",
+            "help": "默认使用已确认的影巢官组发布者，可用英文逗号追加或删减。",
+            "span": 2
+          },
+          {
+            "key": "max_messages",
+            "type": "number",
+            "label": "每次最多处理消息",
+            "default": 50,
+            "min": 1,
+            "max": 100,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "title": "说明",
+        "alert": "插件读取公开 TG 频道 oneonefivewpfx，不需要 TG Token。频道消息中的发布者和 TMDB ID 用于发现候选，二级分类由 Mediary 的 TMDB 详情接口识别；同一电影或剧集已有任意订阅时会跳过。",
+        "fields": []
+      }
+    ]
+  },
+  "data_view": {
+    "title": "影巢趋势记录",
+    "file": "data/records.json",
+    "item_label": "处理记录",
+    "summary": [
+      { "key": "fetched", "label": "读取消息" },
+      { "key": "subscribed", "label": "新增订阅" },
+      { "key": "skipped_existing", "label": "已有订阅" },
+      { "key": "last_result", "label": "最近结果" }
+    ],
+    "fields": [
+      { "key": "title", "label": "名称", "primary": true },
+      { "key": "publisher", "label": "发布者" },
+      { "key": "media_type", "label": "类型" },
+      { "key": "secondary_category", "label": "二级分类" },
+      { "key": "status", "label": "结果" },
+      { "key": "updated_at", "label": "处理时间" }
+    ]
+  }
+}
