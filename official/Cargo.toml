@@ -47,6 +47,10 @@ path = "src/bin/pt-site-message-plugin.rs"
 name = "telegram-resource-plugin"
 path = "src/bin/telegram-resource-plugin.rs"
 
+[[bin]]
+name = "hdhive-trending-plugin"
+path = "src/bin/hdhive-trending-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 base64 = "0.22"

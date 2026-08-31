@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message telegram-resource; do
+          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message telegram-resource hdhive-trending; do
             version=$(node -p "JSON.parse(require('fs').readFileSync('official/${plugin_id}/plugin.json')).version")
             package_dir="package-${plugin_id}"
             mkdir -p "${package_dir}"
@@ -100,6 +100,10 @@ jobs:
               package_files+=(README.md)
             fi
             if [[ "${plugin_id}" == "telegram-resource" ]]; then
+              cp "official/${plugin_id}/README.md" "${package_dir}/README.md"
+              package_files+=(README.md)
+            fi
+            if [[ "${plugin_id}" == "hdhive-trending" ]]; then
               cp "official/${plugin_id}/README.md" "${package_dir}/README.md"
               package_files+=(README.md)
             fi
