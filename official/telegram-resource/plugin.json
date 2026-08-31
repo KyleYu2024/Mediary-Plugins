@@ -2,8 +2,11 @@
   "api_version": 1,
   "id": "telegram-resource",
   "name": "TG搜索",
-  "version": "0.2.0",
-  "description": "搜索 Telegram 频道，并把独立上报频道中的 115 分享和 ed2k 直链资源提交到 CloudHub",
+  "version": "0.2.1",
+  "description": "搜索 Telegram 频道，并实时监听指定频道的新消息，将 115 分享和 ed2k 直链资源提交到 CloudHub",
+  "runtime": {
+    "entrypoint": "./plugin"
+  },
   "action_runtime": {
     "entrypoint": "./plugin"
   },
@@ -15,15 +18,6 @@
     "default_selected": true,
     "timeout_seconds": 85
   },
-  "scheduled_actions": [
-    {
-      "action": "report_resources",
-      "label": "立即上报资源",
-      "manual": true,
-      "cron_setting": "report_cron",
-      "timeout_seconds": 1200
-    }
-  ],
   "secret_fields": [
     "api_hash",
     "login_code",
@@ -139,7 +133,7 @@
       },
       {
         "title": "CloudHub 资源上报",
-        "alert": "资源上报频道独立于搜索频道，可填写重复频道。插件只负责增量发现并上报资源；CloudHub 入库后会广播给各客户端并参与其订阅流程。115 分享按整季/整部上报，正文或 Telegra.ph 中的每条 ed2k 按实际文件分别上报。首次运行默认只建立游标，不倒灌历史。",
+        "alert": "插件使用 Telegram 用户 API 长连接，只实时处理这里明确配置的频道；私聊、群组、搜索频道和其他已加入频道全部忽略。新消息或消息编辑命中后立即上报 CloudHub，短暂断线会通过 Telegram update state 补齐。115 分享按整季/整部上报，正文或 Telegra.ph 中的每条 ed2k 按实际文件分别上报。",
         "fields": [
           {
             "key": "report_channels",
@@ -148,32 +142,6 @@
             "placeholder": "gimy100\nregeng115",
             "help": "每行一个公开频道；可与搜索频道重复",
             "span": 2
-          },
-          {
-            "key": "report_cron",
-            "type": "text",
-            "label": "同步周期",
-            "default": "*/10 * * * *",
-            "help": "5 段 cron，默认每 10 分钟"
-          },
-          {
-            "key": "report_message_limit",
-            "type": "number",
-            "label": "每次每频道消息数",
-            "default": 20,
-            "min": 1,
-            "max": 100,
-            "step": 1
-          },
-          {
-            "key": "report_initial_messages",
-            "type": "number",
-            "label": "首次回溯消息数",
-            "default": 0,
-            "min": 0,
-            "max": 50,
-            "step": 1,
-            "help": "0 表示首次只记录当前位置；需要补历史时可临时设置 1-50"
           }
         ]
       }
