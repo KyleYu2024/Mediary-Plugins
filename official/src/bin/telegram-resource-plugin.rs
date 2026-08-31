@@ -127,6 +127,8 @@ struct TelegramMediaMetadata {
     season: Option<i32>,
     episode: Option<i32>,
     end_episode: Option<i32>,
+    start_season: Option<i32>,
+    end_season: Option<i32>,
     quality: String,
     size: i64,
 }
@@ -1291,35 +1293,57 @@ fn direct_resource_payload(
     channel: &str,
     message_id: i32,
 ) -> Option<DirectResource> {
-    let (virtual_owner, link_field, name, size, season, episode, start_episode, is_full_season) =
-        match link.kind {
-            ResourceLinkKind::Share115 => (
+    let (
+        virtual_owner,
+        link_field,
+        name,
+        size,
+        season,
+        episode,
+        start_season,
+        start_episode,
+        is_full_season,
+    ) = match link.kind {
+        ResourceLinkKind::Share115 => {
+            let multi_season = metadata
+                .start_season
+                .zip(metadata.end_season)
+                .is_some_and(|(start, end)| end > start);
+            (
                 "share115",
                 "share_link",
                 bundle_resource_name(metadata),
                 metadata.size,
-                metadata.season,
+                (!multi_season).then_some(metadata.season).flatten(),
                 None,
-                metadata.episode,
-                metadata.end_episode.is_some(),
-            ),
-            ResourceLinkKind::Ed2k => {
-                let (name, size) = parse_ed2k_file(&link.value)?;
-                let captures = season_episode_regex().captures(&name);
-                let season = captures
-                    .as_ref()
-                    .and_then(|value| value.get(1))
-                    .and_then(|value| value.as_str().parse::<i32>().ok())
-                    .or(metadata.season);
-                let episode = captures
-                    .as_ref()
-                    .and_then(|value| value.get(2))
-                    .and_then(|value| value.as_str().parse::<i32>().ok())
-                    .or(metadata.episode);
-                ("ed2k", "ed2k", name, size, season, episode, episode, false)
-            }
-            ResourceLinkKind::Magnet => return None,
-        };
+                if multi_season {
+                    metadata.start_season
+                } else {
+                    metadata.season
+                },
+                if multi_season { None } else { metadata.episode },
+                metadata.end_episode.is_some() || multi_season,
+            )
+        }
+        ResourceLinkKind::Ed2k => {
+            let (name, size) = parse_ed2k_file(&link.value)?;
+            let captures = season_episode_regex().captures(&name);
+            let season = captures
+                .as_ref()
+                .and_then(|value| value.get(1))
+                .and_then(|value| value.as_str().parse::<i32>().ok())
+                .or(metadata.season);
+            let episode = captures
+                .as_ref()
+                .and_then(|value| value.get(2))
+                .and_then(|value| value.as_str().parse::<i32>().ok())
+                .or(metadata.episode);
+            (
+                "ed2k", "ed2k", name, size, season, episode, season, episode, false,
+            )
+        }
+        ResourceLinkKind::Magnet => return None,
+    };
     if name.trim().is_empty() || size <= 0 {
         return None;
     }
@@ -1338,7 +1362,7 @@ fn direct_resource_payload(
         "type": metadata.media_type,
         "season": season.unwrap_or_default(),
         "episode": episode.unwrap_or_default(),
-        "start_season": season.unwrap_or_default(),
+        "start_season": start_season.unwrap_or_default(),
         "start_episode": start_episode.unwrap_or_default(),
         "is_full_season": is_full_season,
         "quality": quality,
@@ -1371,7 +1395,11 @@ fn bundle_resource_name(metadata: &TelegramMediaMetadata) -> String {
     if let Some(year) = metadata.year {
         value.push_str(&format!(" ({year})"));
     }
-    if let Some(season) = metadata.season {
+    if let (Some(start_season), Some(end_season)) = (metadata.start_season, metadata.end_season)
+        && end_season > start_season
+    {
+        value.push_str(&format!(" S{start_season:02}-S{end_season:02} 全集"));
+    } else if let Some(season) = metadata.season {
         value.push_str(&format!(" S{season:02}"));
         if let Some(start) = metadata.episode {
             value.push_str(&format!("E{start:02}"));
@@ -1380,11 +1408,11 @@ fn bundle_resource_name(metadata: &TelegramMediaMetadata) -> String {
             }
         }
     }
-    if !metadata.quality.is_empty() {
+    let quality = normalize_quality_descriptor(&[&metadata.quality]);
+    if !quality.is_empty() {
         value.push(' ');
-        value.push_str(&metadata.quality);
+        value.push_str(&quality);
     }
-    value.push_str(" [115分享]");
     value
 }
 
@@ -1460,6 +1488,12 @@ fn telegram_media_metadata_from_text(text: &str) -> Option<TelegramMediaMetadata
         .captures(text)
         .and_then(|captures| captures.get(3))
         .and_then(|value| value.as_str().parse::<i32>().ok());
+    let seasons = season_token_regex()
+        .find_iter(text)
+        .filter_map(|value| value.as_str()[1..].parse::<i32>().ok())
+        .collect::<Vec<_>>();
+    let start_season = seasons.iter().copied().min().or(season);
+    let end_season = seasons.iter().copied().max().or(season);
     let quality = quality_from_message(text);
     let size = size_from_message(text).unwrap_or_default();
     Some(TelegramMediaMetadata {
@@ -1470,6 +1504,8 @@ fn telegram_media_metadata_from_text(text: &str) -> Option<TelegramMediaMetadata
         season,
         episode,
         end_episode,
+        start_season,
+        end_season,
         quality,
         size,
     })
@@ -2242,6 +2278,11 @@ fn season_episode_range_regex() -> &'static Regex {
     })
 }
 
+fn season_token_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"(?i)\bS0*\d{1,3}").unwrap())
+}
+
 fn channel_username_regex() -> &'static Regex {
     static VALUE: OnceLock<Regex> = OnceLock::new();
     VALUE.get_or_init(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_]{2,31}$").unwrap())
@@ -2251,7 +2292,7 @@ fn channel_username_regex() -> &'static Regex {
 mod tests {
     use super::{
         FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind,
-        TelegramMediaMetadata, append_115_password, classify_resource_link,
+        TelegramMediaMetadata, append_115_password, bundle_resource_name, classify_resource_link,
         direct_resource_payload, extract_resource_links, mediary_link_submit_payload,
         normalize_channel_token, normalize_quality_descriptor, parse_ed2k_file,
         report_channel_for_peer, size_from_message, telegram_media_hint_from_text,
@@ -2314,7 +2355,7 @@ mod tests {
     fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.3");
+        assert_eq!(manifest["version"], "0.2.4");
         assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
         assert!(manifest.get("scheduled_actions").is_none());
         let fields = manifest["settings_schema"]["sections"]
@@ -2481,6 +2522,8 @@ mod tests {
             season: Some(3),
             episode: Some(1),
             end_episode: Some(8),
+            start_season: Some(3),
+            end_season: Some(3),
             quality: "4K Netflix WEB-DL".to_string(),
             size: 50 * 1024 * 1024 * 1024,
         };
@@ -2502,6 +2545,25 @@ mod tests {
     }
 
     #[test]
+    fn multi_season_bundle_is_not_labeled_as_only_the_first_season() {
+        let text = "电视剧：硫磺泉的秘密 (2021) - S01E01-E11, S02E01-E08, S03E01-E08 完整3季(完结)\n📺 TMDB ID: 114547\n🎞️ 质量: WEB-DL 1080p\n💾 大小: 29.20 GB";
+        let metadata = telegram_media_metadata_from_text(text).unwrap();
+        assert_eq!(metadata.start_season, Some(1));
+        assert_eq!(metadata.end_season, Some(3));
+        let share =
+            classify_resource_link("https://115cdn.com/s/swfl97w3w8k?password=c5f2").unwrap();
+        let resource = direct_resource_payload(&metadata, &share, "gimy100", 26).unwrap();
+        assert_eq!(
+            resource.payload["name"],
+            "硫磺泉的秘密 (2021) S01-S03 全集 1080p WEB-DL"
+        );
+        assert_eq!(resource.payload["season"], 0);
+        assert_eq!(resource.payload["start_season"], 1);
+        assert_eq!(resource.payload["start_episode"], 0);
+        assert_eq!(resource.payload["is_full_season"], true);
+    }
+
+    #[test]
     fn normalizes_video_quality_without_audio_parameters() {
         assert_eq!(
             normalize_quality_descriptor(&[
@@ -2515,6 +2577,27 @@ mod tests {
                 "2160p SDR WEB-DL H.265.10-bit.25fps.High Quality AAC 2.0",
             ]),
             "2160p SDR WEB-DL HEVC 10-bit 25fps HQ"
+        );
+    }
+
+    #[test]
+    fn bundle_names_do_not_include_source_labels() {
+        let metadata = TelegramMediaMetadata {
+            title: "示例剧".to_string(),
+            tmdb_id: 1,
+            media_type: "tv".to_string(),
+            year: Some(2021),
+            season: Some(1),
+            episode: Some(1),
+            end_episode: Some(8),
+            start_season: Some(1),
+            end_season: Some(1),
+            quality: "1080p WEB-DL".to_string(),
+            size: 1,
+        };
+        assert_eq!(
+            bundle_resource_name(&metadata),
+            "示例剧 (2021) S01E01-E08 1080p WEB-DL"
         );
     }
 
