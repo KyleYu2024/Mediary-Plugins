@@ -1,11 +1,11 @@
 {
   "id": "telegram-resource",
   "name": "TG搜索",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "搜索 Telegram 频道，并实时监听指定频道的新消息，将 115 分享和 ed2k 直链资源提交到 CloudHub",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.33/official/telegram-resource",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.33/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.34/official/telegram-resource",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.34/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "2.5.4",
@@ -15,24 +15,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.33/telegram-resource-v0.2.3-linux-amd64.tar.gz",
-      "sha256": "d222c38ed6dfa1bd7b3fa45893d0a46c48110c8b29581c1ef4615795ed5018b9",
-      "size": 6785328
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.34/telegram-resource-v0.2.4-linux-amd64.tar.gz",
+      "sha256": "1a80ce28f9a533efbe8f9a5ba40265322639871a2f1ab7a9256c17102a3b61a4",
+      "size": 6784825
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.33/telegram-resource-v0.2.3-linux-arm64.tar.gz",
-      "sha256": "e5d7e680f9d6bea504d180eefd74ce40c08206cabf3b74e27dbf0b33ba183c94",
-      "size": 6749900
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.34/telegram-resource-v0.2.4-linux-arm64.tar.gz",
+      "sha256": "964297d129913293d56916723c9317a81a1dfd64b97cad84402e7aa97fcba849",
+      "size": 6754590
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.33/telegram-resource-v0.2.3-darwin-amd64.tar.gz",
-      "sha256": "627cd064c2b1f068fc1232ce9dd70c9f6ec1a5e6deab9a06fc4e777b8ea4c7fa",
-      "size": 6390761
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.34/telegram-resource-v0.2.4-darwin-amd64.tar.gz",
+      "sha256": "b0293336dc9fd77bd6569492b6e5464a77bf89d2458b252c94f9777a3f4887d9",
+      "size": 6394550
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.33/telegram-resource-v0.2.3-darwin-arm64.tar.gz",
-      "sha256": "6d1158616107ca7ded2e7bf5b55c96073a6a8815102d9a0696b2a696ec1f8048",
-      "size": 6121475
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.34/telegram-resource-v0.2.4-darwin-arm64.tar.gz",
+      "sha256": "1875b13af529ce749218bf8990d105ce5ce6cad0da3f319a16cd119cb952b6a9",
+      "size": 6124254
     }
   }
 }
