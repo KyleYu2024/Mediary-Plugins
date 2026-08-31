@@ -2,11 +2,15 @@ use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::Utc;
 use fs2::FileExt;
 use grammers_client::{
-    Client as TelegramClient, SignInError, client::PasswordToken, media::Media, message::Message,
+    Client as TelegramClient, SignInError,
+    client::{PasswordToken, UpdateStream, UpdatesConfiguration},
+    media::Media,
+    message::Message,
     peer::Peer,
+    update::Update,
 };
 use grammers_mtsender::{ConnectionParams, InvocationError, SenderPool, SenderPoolFatHandle};
-use grammers_session::{Session, storages::SqliteSession};
+use grammers_session::{Session, storages::SqliteSession, types::PeerId};
 use grammers_tl_types as tl;
 use percent_encoding::percent_decode_str;
 use regex::Regex;
@@ -35,8 +39,6 @@ use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
 const SESSION_FILE: &str = "telegram.session";
 const LOGIN_STATE_FILE: &str = "login-state.json";
-const RESOURCE_REPORT_STATE_FILE: &str = "resource-report-state.json";
-const LEGACY_SUBSCRIPTION_STATE_FILE: &str = "subscription-state.json";
 const ACTION_LOCK_FILE: &str = ".telegram.lock";
 const LOGIN_TTL_SECONDS: i64 = 15 * 60;
 const MAX_CHANNELS: usize = 50;
@@ -44,7 +46,6 @@ const MAX_DESCRIPTION_CHARS: usize = 800;
 const SECRET_PLACEHOLDER: &str = "******";
 const FLOWLINK_MOVE_ALL_DELAY_SECONDS: u64 = 10;
 const MAX_PROXY_RESPONSE_HEADER_BYTES: usize = 16 * 1024;
-const MAX_REPORT_HISTORY: usize = 2_000;
 
 #[derive(Clone)]
 struct PluginContext {
@@ -64,6 +65,7 @@ struct TelegramCredentials {
 struct TelegramConnection {
     client: TelegramClient,
     session: Arc<SqliteSession>,
+    updates: Option<UpdateStream>,
     handle: SenderPoolFatHandle,
     runner: JoinHandle<()>,
     _http_proxy_bridge: Option<HttpConnectBridge>,
@@ -87,24 +89,6 @@ struct LoginState {
     phone_code_hash: String,
     phase: LoginPhase,
     expires_at: i64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct ResourceReportState {
-    #[serde(default)]
-    channel_cursors: HashMap<String, i32>,
-    #[serde(default)]
-    submitted_links: Vec<String>,
-}
-
-#[derive(Debug, Clone, Default)]
-struct ResourceReport {
-    channels: usize,
-    initialized: usize,
-    messages: usize,
-    submitted: usize,
-    skipped: usize,
-    failed: usize,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -149,7 +133,6 @@ struct TelegramMediaMetadata {
 
 #[derive(Debug, Clone)]
 struct DirectResource {
-    key: String,
     payload: Value,
 }
 
@@ -163,8 +146,11 @@ async fn main() {
 
 async fn run() -> Result<(), String> {
     let context = PluginContext::from_env()?;
-    let _lock = lock_action(&context.data_dir)?;
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
+    if action.trim().is_empty() {
+        return run_realtime_reporter(&context).await;
+    }
+    let _lock = lock_action(&context.data_dir)?;
     let payload = read_payload()?;
     let output = match action.as_str() {
         "status" => account_status(&context).await?,
@@ -173,7 +159,6 @@ async fn run() -> Result<(), String> {
         "logout" => logout(&context).await?,
         "resource_search" => resource_search(&context, &payload).await?,
         "transfer" => transfer_resource(&context, &payload).await?,
-        "report_resources" | "sync_subscriptions" => report_resources(&context).await?,
         _ => return Err(format!("Telegram 插件不支持动作: {action}")),
     };
     println!("{output}");
@@ -223,16 +208,31 @@ impl TelegramConnection {
         );
         secure_file_if_exists(&session_path)?;
         let (connection_params, http_proxy_bridge) = telegram_connection_params(context).await?;
-        let SenderPool { runner, handle, .. } = SenderPool::with_configuration(
+        let SenderPool {
+            runner,
+            handle,
+            updates,
+        } = SenderPool::with_configuration(
             Arc::clone(&session),
             credentials.api_id,
             connection_params,
         );
         let client = TelegramClient::new(handle.clone());
         let runner = tokio::spawn(runner.run());
+        let updates = client
+            .stream_updates(
+                updates,
+                UpdatesConfiguration {
+                    catch_up: true,
+                    update_queue_limit: Some(1_000),
+                },
+            )
+            .await
+            .map_err(|error| format!("创建 Telegram 实时消息流失败: {error}"))?;
         Ok(Self {
             client,
             session,
+            updates: Some(updates),
             handle,
             runner,
             _http_proxy_bridge: http_proxy_bridge,
@@ -808,160 +808,113 @@ async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Val
     Ok(json!({"results": results}))
 }
 
-async fn report_resources(context: &PluginContext) -> Result<Value, String> {
+async fn run_realtime_reporter(context: &PluginContext) -> Result<(), String> {
     ensure_cloudhub_enabled(context).await?;
     let credentials = credentials_from_settings(&context.settings)?;
     let channels = configured_report_channels(&context.settings)?;
     if channels.is_empty() {
         return Err("请先在 Telegram 插件配置中填写至少一个资源上报频道".to_string());
     }
-    let message_limit = setting_usize_alias(
-        &context.settings,
-        "report_message_limit",
-        "subscription_message_limit",
-        20,
-        1,
-        100,
-    );
-    let initial_messages = setting_usize_alias(
-        &context.settings,
-        "report_initial_messages",
-        "subscription_initial_messages",
-        0,
-        0,
-        50,
-    );
-    let connection = TelegramConnection::connect(context, &credentials).await?;
+    let mut connection = TelegramConnection::connect(context, &credentials).await?;
     connection.ensure_authorized().await?;
-    let mut state = read_resource_report_state(&context.data_dir)?;
-    let mut submitted = state
-        .submitted_links
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
-    let mut report = ResourceReport::default();
-    let mut failures = Vec::new();
-
-    for channel in channels {
-        report.channels += 1;
-        let channel_key = channel.to_ascii_lowercase();
-        let cursor = state.channel_cursors.get(&channel_key).copied();
-        let fetch_limit = if cursor.is_none() {
-            initial_messages.max(1)
-        } else {
-            message_limit
-        };
-        let peer = match resolve_public_channel(&connection.client, &channel).await {
-            Ok(peer) => peer,
-            Err(error) => {
-                report.failed += 1;
-                failures.push(format!("@{channel}: {error}"));
-                continue;
-            }
-        };
-        let peer_ref = match peer.to_ref().await {
-            Ok(Some(peer_ref)) => peer_ref,
-            Ok(None) => {
-                report.failed += 1;
-                failures.push(format!("@{channel}: 无法获取频道访问凭据"));
-                continue;
-            }
-            Err(error) => {
-                report.failed += 1;
-                failures.push(format!("@{channel}: 解析频道引用失败: {error}"));
-                continue;
-            }
-        };
-        let mut messages = Vec::new();
-        let mut iterator = connection.client.iter_messages(peer_ref).limit(fetch_limit);
-        while let Some(message) = iterator
-            .next()
-            .await
-            .map_err(|error| format_telegram_error("读取资源上报频道消息失败", &error))?
-        {
-            messages.push(message);
-        }
-        let Some(latest_id) = messages.first().map(Message::id) else {
-            continue;
-        };
-        if cursor.is_none() && initial_messages == 0 {
-            state.channel_cursors.insert(channel_key, latest_id);
-            report.initialized += 1;
-            write_resource_report_state(&context.data_dir, &state)?;
-            continue;
-        }
-
-        messages.reverse();
-        let current_cursor = cursor.unwrap_or(0);
-        for message in messages
-            .into_iter()
-            .filter(|message| message.id() > current_cursor)
-        {
-            report.messages += 1;
-            let resources = match direct_resources_from_message(context, &message, &channel).await {
-                Ok(resources) => resources,
-                Err(error) => {
-                    report.failed += 1;
-                    failures.push(format!("@{channel} #{}: {error}", message.id()));
-                    break;
-                }
-            };
-            let resources = resources
-                .into_iter()
-                .filter(|resource| !submitted.contains(&resource.key))
-                .collect::<Vec<_>>();
-            if resources.is_empty() {
-                report.skipped += 1;
-                state
-                    .channel_cursors
-                    .insert(channel_key.clone(), message.id());
-                continue;
-            }
-            match push_direct_resources(context, &resources).await {
-                Ok(_) => {
-                    for resource in resources {
-                        submitted.insert(resource.key.clone());
-                        state.submitted_links.push(resource.key);
-                        report.submitted += 1;
-                    }
-                    trim_report_history(&mut state.submitted_links);
-                    state
-                        .channel_cursors
-                        .insert(channel_key.clone(), message.id());
-                }
-                Err(error) => {
-                    report.failed += 1;
-                    failures.push(format!("@{channel} #{}: {error}", message.id()));
-                    break;
-                }
-            }
-            write_resource_report_state(&context.data_dir, &state)?;
-        }
-        write_resource_report_state(&context.data_dir, &state)?;
-    }
-
-    if report.submitted == 0 && report.initialized == 0 && report.failed > 0 {
-        return Err(format!(
-            "Telegram 资源上报失败：{}",
-            failures.into_iter().take(3).collect::<Vec<_>>().join("；")
-        ));
-    }
-    let notice = format!(
-        "TG 资源上报完成：检查 {} 个频道，上报 {} 条，跳过 {} 条，初始化 {} 个频道，失败 {} 条。",
-        report.channels, report.submitted, report.skipped, report.initialized, report.failed
+    let report_peers = resolve_report_peers(&connection.client, &channels).await?;
+    let mut updates = connection
+        .updates
+        .take()
+        .ok_or_else(|| "Telegram 实时消息流不可用".to_string())?;
+    eprintln!(
+        "TG 资源实时上报已启动，仅监听 {} 个已配置频道: {}",
+        report_peers.len(),
+        channels
+            .iter()
+            .map(|channel| format!("@{channel}"))
+            .collect::<Vec<_>>()
+            .join("、")
     );
-    Ok(json!({
-        "notice": notice,
-        "report": {
-            "channels": report.channels,
-            "initialized": report.initialized,
-            "messages": report.messages,
-            "submitted": report.submitted,
-            "skipped": report.skipped,
-            "failed": report.failed,
-            "failures": failures.into_iter().take(10).collect::<Vec<_>>()
+
+    loop {
+        tokio::select! {
+            _ = shutdown_signal() => {
+                updates
+                    .sync_update_state()
+                    .await
+                    .map_err(|error| format!("保存 Telegram 实时消息游标失败: {error}"))?;
+                eprintln!("TG 资源实时上报已停止");
+                return Ok(());
+            }
+            update = updates.next() => {
+                let update = update.map_err(|error| format_telegram_error("接收 Telegram 实时消息失败", &error))?;
+                let (message, event_name) = match update {
+                    Update::NewMessage(message) => (message.into_inner(), "新消息"),
+                    Update::MessageEdited(message) => (message.into_inner(), "消息编辑"),
+                    _ => continue,
+                };
+                let Some(channel) = report_channel_for_peer(&report_peers, message.peer_id()) else {
+                    continue;
+                };
+                match report_realtime_message(context, &message, channel).await {
+                    Ok(0) => {}
+                    Ok(count) => eprintln!(
+                        "Telegram @{channel} {event_name} #{} 已实时上报 {count} 条 CloudHub 资源",
+                        message.id()
+                    ),
+                    Err(error) => eprintln!(
+                        "Telegram @{channel} {event_name} #{} 资源上报失败: {error}",
+                        message.id()
+                    ),
+                }
+            }
         }
-    }))
+    }
+}
+
+fn report_channel_for_peer(
+    report_peers: &HashMap<PeerId, String>,
+    peer_id: PeerId,
+) -> Option<&str> {
+    report_peers.get(&peer_id).map(String::as_str)
+}
+
+async fn resolve_report_peers(
+    client: &TelegramClient,
+    channels: &[String],
+) -> Result<HashMap<PeerId, String>, String> {
+    let mut peers = HashMap::new();
+    for channel in channels {
+        let peer = resolve_public_channel(client, channel).await?;
+        peers.insert(peer.id(), channel.clone());
+    }
+    Ok(peers)
+}
+
+async fn report_realtime_message(
+    context: &PluginContext,
+    message: &Message,
+    channel: &str,
+) -> Result<usize, String> {
+    let resources = direct_resources_from_message(context, message, channel).await?;
+    if resources.is_empty() {
+        return Ok(0);
+    }
+    push_direct_resources(context, &resources).await?;
+    Ok(resources.len())
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = terminate.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
 }
 
 async fn ensure_cloudhub_enabled(context: &PluginContext) -> Result<(), String> {
@@ -1397,10 +1350,7 @@ fn direct_resource_payload(
     payload
         .as_object_mut()?
         .insert(link_field.to_string(), json!(link.value));
-    Some(DirectResource {
-        key: link.key.clone(),
-        payload,
-    })
+    Some(DirectResource { payload })
 }
 
 fn parse_ed2k_file(link: &str) -> Option<(String, i64)> {
@@ -1738,31 +1688,6 @@ fn configured_channel_setting(
     Ok(channels)
 }
 
-fn read_resource_report_state(data_dir: &Path) -> Result<ResourceReportState, String> {
-    let path = data_dir.join(RESOURCE_REPORT_STATE_FILE);
-    let path = if path.exists() {
-        path
-    } else {
-        data_dir.join(LEGACY_SUBSCRIPTION_STATE_FILE)
-    };
-    if !path.exists() {
-        return Ok(ResourceReportState::default());
-    }
-    let body = fs::read_to_string(&path)
-        .map_err(|error| format!("读取 Telegram 资源上报状态失败: {error}"))?;
-    serde_json::from_str(&body).map_err(|error| format!("解析 Telegram 资源上报状态失败: {error}"))
-}
-
-fn write_resource_report_state(data_dir: &Path, state: &ResourceReportState) -> Result<(), String> {
-    write_secure_json(&data_dir.join(RESOURCE_REPORT_STATE_FILE), state)
-}
-
-fn trim_report_history(history: &mut Vec<String>) {
-    if history.len() > MAX_REPORT_HISTORY {
-        history.drain(..history.len() - MAX_REPORT_HISTORY);
-    }
-}
-
 fn normalize_channel_token(value: &str) -> Result<String, String> {
     let value = value.trim().trim_end_matches('/');
     if value.is_empty() {
@@ -2086,21 +2011,6 @@ fn setting_usize(
         .clamp(min, max)
 }
 
-fn setting_usize_alias(
-    settings: &Map<String, Value>,
-    key: &str,
-    legacy_key: &str,
-    default: usize,
-    min: usize,
-    max: usize,
-) -> usize {
-    value_i64(settings.get(key))
-        .or_else(|| value_i64(settings.get(legacy_key)))
-        .and_then(|value| usize::try_from(value).ok())
-        .unwrap_or(default)
-        .clamp(min, max)
-}
-
 fn value_i64(value: Option<&Value>) -> Option<i64> {
     value.and_then(value_i64_ref)
 }
@@ -2248,9 +2158,11 @@ mod tests {
         FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind,
         TelegramMediaMetadata, append_115_password, classify_resource_link,
         direct_resource_payload, extract_resource_links, mediary_link_submit_payload,
-        normalize_channel_token, parse_ed2k_file, size_from_message, telegram_media_hint_from_text,
-        telegram_media_metadata_from_text, trim_link_punctuation,
+        normalize_channel_token, parse_ed2k_file, report_channel_for_peer, size_from_message,
+        telegram_media_hint_from_text, telegram_media_metadata_from_text, trim_link_punctuation,
     };
+    use grammers_session::types::PeerId;
+    use std::collections::HashMap;
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::{TcpListener, TcpStream},
@@ -2303,10 +2215,25 @@ mod tests {
     }
 
     #[test]
-    fn manifest_requests_main_settings_for_proxy_reuse() {
+    fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.0");
+        assert_eq!(manifest["version"], "0.2.1");
+        assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
+        assert!(manifest.get("scheduled_actions").is_none());
+        let fields = manifest["settings_schema"]["sections"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|section| section["fields"].as_array().into_iter().flatten())
+            .filter_map(|field| field["key"].as_str())
+            .collect::<Vec<_>>();
+        assert!(fields.contains(&"report_channels"));
+        assert!(
+            !fields
+                .iter()
+                .any(|key| key.starts_with("report_") && *key != "report_channels")
+        );
         assert_eq!(
             manifest["requested_scopes"],
             serde_json::json!(["integrations:run", "settings:read"])
@@ -2461,5 +2388,16 @@ mod tests {
         assert_eq!(episode.payload["episode"], 1);
         assert_eq!(episode.payload["size"], 6_533_701_550_i64);
         assert_ne!(bundle.payload["sha1"], episode.payload["sha1"]);
+    }
+
+    #[test]
+    fn realtime_reporter_accepts_only_configured_channel_peer_ids() {
+        let configured = PeerId::channel(12345).unwrap();
+        let other_channel = PeerId::channel(67890).unwrap();
+        let private_chat = PeerId::user(12345).unwrap();
+        let peers = HashMap::from([(configured, "gimy100".to_string())]);
+        assert_eq!(report_channel_for_peer(&peers, configured), Some("gimy100"));
+        assert_eq!(report_channel_for_peer(&peers, other_channel), None);
+        assert_eq!(report_channel_for_peer(&peers, private_chat), None);
     }
 }
