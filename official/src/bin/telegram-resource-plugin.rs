@@ -8,12 +8,14 @@ use grammers_client::{
 use grammers_mtsender::{ConnectionParams, InvocationError, SenderPool, SenderPoolFatHandle};
 use grammers_session::{Session, storages::SqliteSession};
 use grammers_tl_types as tl;
+use percent_encoding::percent_decode_str;
 use regex::Regex;
 use reqwest::{Client as HttpClient, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use sha2::{Digest, Sha256};
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     env, fs,
     fs::{File, OpenOptions},
     io::{self, Read},
@@ -33,6 +35,8 @@ use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
 const SESSION_FILE: &str = "telegram.session";
 const LOGIN_STATE_FILE: &str = "login-state.json";
+const RESOURCE_REPORT_STATE_FILE: &str = "resource-report-state.json";
+const LEGACY_SUBSCRIPTION_STATE_FILE: &str = "subscription-state.json";
 const ACTION_LOCK_FILE: &str = ".telegram.lock";
 const LOGIN_TTL_SECONDS: i64 = 15 * 60;
 const MAX_CHANNELS: usize = 50;
@@ -40,6 +44,7 @@ const MAX_DESCRIPTION_CHARS: usize = 800;
 const SECRET_PLACEHOLDER: &str = "******";
 const FLOWLINK_MOVE_ALL_DELAY_SECONDS: u64 = 10;
 const MAX_PROXY_RESPONSE_HEADER_BYTES: usize = 16 * 1024;
+const MAX_REPORT_HISTORY: usize = 2_000;
 
 #[derive(Clone)]
 struct PluginContext {
@@ -84,6 +89,24 @@ struct LoginState {
     expires_at: i64,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct ResourceReportState {
+    #[serde(default)]
+    channel_cursors: HashMap<String, i32>,
+    #[serde(default)]
+    submitted_links: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct ResourceReport {
+    channels: usize,
+    initialized: usize,
+    messages: usize,
+    submitted: usize,
+    skipped: usize,
+    failed: usize,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum LoginPhase {
@@ -111,6 +134,25 @@ struct ChannelSearchResult {
     searched: bool,
 }
 
+#[derive(Debug, Clone)]
+struct TelegramMediaMetadata {
+    title: String,
+    tmdb_id: i64,
+    media_type: String,
+    year: Option<i32>,
+    season: Option<i32>,
+    episode: Option<i32>,
+    end_episode: Option<i32>,
+    quality: String,
+    size: i64,
+}
+
+#[derive(Debug, Clone)]
+struct DirectResource {
+    key: String,
+    payload: Value,
+}
+
 #[tokio::main]
 async fn main() {
     if let Err(error) = run().await {
@@ -131,6 +173,7 @@ async fn run() -> Result<(), String> {
         "logout" => logout(&context).await?,
         "resource_search" => resource_search(&context, &payload).await?,
         "transfer" => transfer_resource(&context, &payload).await?,
+        "report_resources" | "sync_subscriptions" => report_resources(&context).await?,
         _ => return Err(format!("Telegram 插件不支持动作: {action}")),
     };
     println!("{output}");
@@ -499,6 +542,7 @@ async fn account_status(context: &PluginContext) -> Result<Value, String> {
                 display_user_name(&user),
                 user.username().map(str::to_string),
                 configured_channels(&context.settings)?.len(),
+                configured_report_channels(&context.settings)?.len(),
                 "Telegram 已登录。",
             ))
         }
@@ -764,6 +808,194 @@ async fn resource_search(context: &PluginContext, payload: &Value) -> Result<Val
     Ok(json!({"results": results}))
 }
 
+async fn report_resources(context: &PluginContext) -> Result<Value, String> {
+    ensure_cloudhub_enabled(context).await?;
+    let credentials = credentials_from_settings(&context.settings)?;
+    let channels = configured_report_channels(&context.settings)?;
+    if channels.is_empty() {
+        return Err("请先在 Telegram 插件配置中填写至少一个资源上报频道".to_string());
+    }
+    let message_limit = setting_usize_alias(
+        &context.settings,
+        "report_message_limit",
+        "subscription_message_limit",
+        20,
+        1,
+        100,
+    );
+    let initial_messages = setting_usize_alias(
+        &context.settings,
+        "report_initial_messages",
+        "subscription_initial_messages",
+        0,
+        0,
+        50,
+    );
+    let connection = TelegramConnection::connect(context, &credentials).await?;
+    connection.ensure_authorized().await?;
+    let mut state = read_resource_report_state(&context.data_dir)?;
+    let mut submitted = state
+        .submitted_links
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut report = ResourceReport::default();
+    let mut failures = Vec::new();
+
+    for channel in channels {
+        report.channels += 1;
+        let channel_key = channel.to_ascii_lowercase();
+        let cursor = state.channel_cursors.get(&channel_key).copied();
+        let fetch_limit = if cursor.is_none() {
+            initial_messages.max(1)
+        } else {
+            message_limit
+        };
+        let peer = match resolve_public_channel(&connection.client, &channel).await {
+            Ok(peer) => peer,
+            Err(error) => {
+                report.failed += 1;
+                failures.push(format!("@{channel}: {error}"));
+                continue;
+            }
+        };
+        let peer_ref = match peer.to_ref().await {
+            Ok(Some(peer_ref)) => peer_ref,
+            Ok(None) => {
+                report.failed += 1;
+                failures.push(format!("@{channel}: 无法获取频道访问凭据"));
+                continue;
+            }
+            Err(error) => {
+                report.failed += 1;
+                failures.push(format!("@{channel}: 解析频道引用失败: {error}"));
+                continue;
+            }
+        };
+        let mut messages = Vec::new();
+        let mut iterator = connection.client.iter_messages(peer_ref).limit(fetch_limit);
+        while let Some(message) = iterator
+            .next()
+            .await
+            .map_err(|error| format_telegram_error("读取资源上报频道消息失败", &error))?
+        {
+            messages.push(message);
+        }
+        let Some(latest_id) = messages.first().map(Message::id) else {
+            continue;
+        };
+        if cursor.is_none() && initial_messages == 0 {
+            state.channel_cursors.insert(channel_key, latest_id);
+            report.initialized += 1;
+            write_resource_report_state(&context.data_dir, &state)?;
+            continue;
+        }
+
+        messages.reverse();
+        let current_cursor = cursor.unwrap_or(0);
+        for message in messages
+            .into_iter()
+            .filter(|message| message.id() > current_cursor)
+        {
+            report.messages += 1;
+            let resources = match direct_resources_from_message(context, &message, &channel).await {
+                Ok(resources) => resources,
+                Err(error) => {
+                    report.failed += 1;
+                    failures.push(format!("@{channel} #{}: {error}", message.id()));
+                    break;
+                }
+            };
+            let resources = resources
+                .into_iter()
+                .filter(|resource| !submitted.contains(&resource.key))
+                .collect::<Vec<_>>();
+            if resources.is_empty() {
+                report.skipped += 1;
+                state
+                    .channel_cursors
+                    .insert(channel_key.clone(), message.id());
+                continue;
+            }
+            match push_direct_resources(context, &resources).await {
+                Ok(_) => {
+                    for resource in resources {
+                        submitted.insert(resource.key.clone());
+                        state.submitted_links.push(resource.key);
+                        report.submitted += 1;
+                    }
+                    trim_report_history(&mut state.submitted_links);
+                    state
+                        .channel_cursors
+                        .insert(channel_key.clone(), message.id());
+                }
+                Err(error) => {
+                    report.failed += 1;
+                    failures.push(format!("@{channel} #{}: {error}", message.id()));
+                    break;
+                }
+            }
+            write_resource_report_state(&context.data_dir, &state)?;
+        }
+        write_resource_report_state(&context.data_dir, &state)?;
+    }
+
+    if report.submitted == 0 && report.initialized == 0 && report.failed > 0 {
+        return Err(format!(
+            "Telegram 资源上报失败：{}",
+            failures.into_iter().take(3).collect::<Vec<_>>().join("；")
+        ));
+    }
+    let notice = format!(
+        "TG 资源上报完成：检查 {} 个频道，上报 {} 条，跳过 {} 条，初始化 {} 个频道，失败 {} 条。",
+        report.channels, report.submitted, report.skipped, report.initialized, report.failed
+    );
+    Ok(json!({
+        "notice": notice,
+        "report": {
+            "channels": report.channels,
+            "initialized": report.initialized,
+            "messages": report.messages,
+            "submitted": report.submitted,
+            "skipped": report.skipped,
+            "failed": report.failed,
+            "failures": failures.into_iter().take(10).collect::<Vec<_>>()
+        }
+    }))
+}
+
+async fn ensure_cloudhub_enabled(context: &PluginContext) -> Result<(), String> {
+    let response = context
+        .http
+        .get(format!("{}/settings", context.mediary_api_url))
+        .bearer_auth(&context.mediary_token)
+        .send()
+        .await
+        .map_err(|error| format!("读取 Mediary CloudHub 配置失败: {error}"))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| format!("读取 Mediary CloudHub 配置响应失败: {error}"))?;
+    if !status.is_success() {
+        return Err(format!(
+            "读取 Mediary CloudHub 配置失败: HTTP {}",
+            status.as_u16()
+        ));
+    }
+    let settings: Value = serde_json::from_str(&body)
+        .map_err(|error| format!("解析 Mediary CloudHub 配置失败: {error}"))?;
+    let cloudhub = settings.get("cloudhub").unwrap_or(&Value::Null);
+    if !cloudhub
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return Err("Mediary 尚未启用 CloudHub，请先在系统设置中启用并配置 CloudHub".to_string());
+    }
+    Ok(())
+}
+
 async fn search_channel(
     client: &TelegramClient,
     channel_username: &str,
@@ -956,6 +1188,10 @@ async fn transfer_resource(context: &PluginContext, payload: &Value) -> Result<V
 
 async fn submit_link(context: &PluginContext, link: &ResourceLink) -> Result<Value, String> {
     let payload = mediary_link_submit_payload(link);
+    submit_link_payload(context, &payload).await
+}
+
+async fn submit_link_payload(context: &PluginContext, payload: &Value) -> Result<Value, String> {
     let response = context
         .http
         .post(format!("{}/link/submit", context.mediary_api_url))
@@ -978,6 +1214,316 @@ async fn submit_link(context: &PluginContext, link: &ResourceLink) -> Result<Val
     Ok(value)
 }
 
+async fn direct_resources_from_message(
+    context: &PluginContext,
+    message: &Message,
+    channel: &str,
+) -> Result<Vec<DirectResource>, String> {
+    let sources = message_link_sources(message);
+    let mut links = extract_resource_links(message.text(), &sources)
+        .into_iter()
+        .filter(|link| {
+            matches!(
+                link.kind,
+                ResourceLinkKind::Share115 | ResourceLinkKind::Ed2k
+            )
+        })
+        .collect::<Vec<_>>();
+    let telegraph_urls = sources
+        .iter()
+        .flat_map(|source| http_url_regex().find_iter(source).map(|item| item.as_str()))
+        .filter(|url| {
+            Url::parse(url)
+                .ok()
+                .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+                .is_some_and(|host| host == "telegra.ph" || host.ends_with(".telegra.ph"))
+        })
+        .map(str::to_string)
+        .collect::<HashSet<_>>();
+    if !telegraph_urls.is_empty() {
+        let client = external_http_client(context).await?;
+        for url in telegraph_urls {
+            let response = client
+                .get(&url)
+                .send()
+                .await
+                .map_err(|error| format!("读取 Telegra.ph ED2K 列表失败: {error}"))?;
+            let status = response.status();
+            let body = response
+                .text()
+                .await
+                .map_err(|error| format!("读取 Telegra.ph 响应失败: {error}"))?;
+            if !status.is_success() {
+                return Err(format!(
+                    "读取 Telegra.ph ED2K 列表失败: HTTP {}",
+                    status.as_u16()
+                ));
+            }
+            let decoded = body
+                .replace("&amp;", "&")
+                .replace("&#124;", "|")
+                .replace("&quot;", "\"");
+            links.extend(
+                extract_resource_links(message.text(), &[decoded])
+                    .into_iter()
+                    .filter(|link| link.kind == ResourceLinkKind::Ed2k),
+            );
+        }
+    }
+    let mut seen = HashSet::new();
+    links.retain(|link| seen.insert(link.key.clone()));
+    if links.is_empty() {
+        return Ok(Vec::new());
+    }
+    let metadata = telegram_media_metadata_from_text(message.text())
+        .ok_or_else(|| "资源消息缺少可识别的标题或 TMDB ID".to_string())?;
+    Ok(links
+        .into_iter()
+        .filter_map(|link| direct_resource_payload(&metadata, &link, channel, message.id()))
+        .collect())
+}
+
+async fn external_http_client(context: &PluginContext) -> Result<HttpClient, String> {
+    let mut builder = HttpClient::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(30));
+    if let Some(proxy_url) = configured_proxy_url(context).await? {
+        let proxy = reqwest::Proxy::all(&proxy_url)
+            .map_err(|error| format!("创建 Telegra.ph 代理失败: {error}"))?;
+        builder = builder.proxy(proxy);
+    }
+    builder
+        .build()
+        .map_err(|error| format!("创建 Telegra.ph 客户端失败: {error}"))
+}
+
+async fn push_direct_resources(
+    context: &PluginContext,
+    resources: &[DirectResource],
+) -> Result<Value, String> {
+    let mut last = Value::Null;
+    for chunk in resources.chunks(100) {
+        let payload = chunk
+            .iter()
+            .map(|resource| resource.payload.clone())
+            .collect::<Vec<_>>();
+        let response = context
+            .http
+            .post(format!(
+                "{}/cloudhub/resources/push",
+                context.mediary_api_url
+            ))
+            .bearer_auth(&context.mediary_token)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|error| format!("上报 CloudHub 直链资源失败: {error}"))?;
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|error| format!("读取 CloudHub 上报响应失败: {error}"))?;
+        last = serde_json::from_str(&body).unwrap_or(Value::Null);
+        if !status.is_success() {
+            return Err(first_text(&last, &["error", "message"])
+                .unwrap_or_else(|| format!("Mediary 返回 HTTP {}", status.as_u16())));
+        }
+    }
+    Ok(last)
+}
+
+fn direct_resource_payload(
+    metadata: &TelegramMediaMetadata,
+    link: &ResourceLink,
+    channel: &str,
+    message_id: i32,
+) -> Option<DirectResource> {
+    let (virtual_owner, link_field, name, size, season, episode, start_episode, is_full_season) =
+        match link.kind {
+            ResourceLinkKind::Share115 => (
+                "share115",
+                "share_link",
+                bundle_resource_name(metadata),
+                metadata.size,
+                metadata.season,
+                None,
+                metadata.episode,
+                metadata.end_episode.is_some(),
+            ),
+            ResourceLinkKind::Ed2k => {
+                let (name, size) = parse_ed2k_file(&link.value)?;
+                let captures = season_episode_regex().captures(&name);
+                let season = captures
+                    .as_ref()
+                    .and_then(|value| value.get(1))
+                    .and_then(|value| value.as_str().parse::<i32>().ok())
+                    .or(metadata.season);
+                let episode = captures
+                    .as_ref()
+                    .and_then(|value| value.get(2))
+                    .and_then(|value| value.as_str().parse::<i32>().ok())
+                    .or(metadata.episode);
+                ("ed2k", "ed2k", name, size, season, episode, episode, false)
+            }
+            ResourceLinkKind::Magnet => return None,
+        };
+    if name.trim().is_empty() || size <= 0 {
+        return None;
+    }
+    let sha1 = format!("{:X}", Sha256::digest(link.key.as_bytes()));
+    let mut payload = json!({
+        "schema": "cloud_resource.v1",
+        "source_app": "telegram-resource",
+        "source_node_id": channel,
+        "sha1": sha1,
+        "size": size,
+        "name": name,
+        "raw_name": name,
+        "title": metadata.title,
+        "tmdb_id": metadata.tmdb_id,
+        "type": metadata.media_type,
+        "season": season.unwrap_or_default(),
+        "episode": episode.unwrap_or_default(),
+        "start_season": season.unwrap_or_default(),
+        "start_episode": start_episode.unwrap_or_default(),
+        "is_full_season": is_full_season,
+        "quality": metadata.quality,
+        "year": metadata.year,
+        "virtual_owner": virtual_owner,
+        "owner_name": if virtual_owner == "share115" { "115 分享" } else { "ED2K" },
+        "telegram_channel": channel,
+        "telegram_message_id": message_id,
+    });
+    payload
+        .as_object_mut()?
+        .insert(link_field.to_string(), json!(link.value));
+    Some(DirectResource {
+        key: link.key.clone(),
+        payload,
+    })
+}
+
+fn parse_ed2k_file(link: &str) -> Option<(String, i64)> {
+    let parts = link.split('|').collect::<Vec<_>>();
+    if parts.len() < 6 || !parts[0].eq_ignore_ascii_case("ed2k://") || parts[1] != "file" {
+        return None;
+    }
+    let name = percent_decode_str(parts[2])
+        .decode_utf8_lossy()
+        .into_owned();
+    let size = parts[3].parse::<i64>().ok()?;
+    Some((name, size))
+}
+
+fn bundle_resource_name(metadata: &TelegramMediaMetadata) -> String {
+    let mut value = metadata.title.clone();
+    if let Some(year) = metadata.year {
+        value.push_str(&format!(" ({year})"));
+    }
+    if let Some(season) = metadata.season {
+        value.push_str(&format!(" S{season:02}"));
+        if let Some(start) = metadata.episode {
+            value.push_str(&format!("E{start:02}"));
+            if let Some(end) = metadata.end_episode {
+                value.push_str(&format!("-E{end:02}"));
+            }
+        }
+    }
+    if !metadata.quality.is_empty() {
+        value.push(' ');
+        value.push_str(&metadata.quality);
+    }
+    value.push_str(" [115分享]");
+    value
+}
+
+#[cfg(test)]
+fn telegram_media_hint_from_text(text: &str) -> Option<Value> {
+    let metadata = telegram_media_metadata_from_text(text)?;
+    let episodes = metadata.episode.into_iter().collect::<Vec<_>>();
+    Some(json!({
+        "schema_version": 1,
+        "source": "telegram-resource",
+        "subscription_id": Value::Null,
+        "tmdb_id": metadata.tmdb_id,
+        "media_type": metadata.media_type,
+        "title": metadata.title,
+        "year": metadata.year,
+        "season": metadata.season,
+        "episodes": episodes,
+        "select_episodes": false,
+        "secondary_category": Value::Null,
+        "sha1": Value::Null,
+        "receive_title": metadata.title
+    }))
+}
+
+fn telegram_media_metadata_from_text(text: &str) -> Option<TelegramMediaMetadata> {
+    let text = text.trim();
+    let first_line = text.lines().find(|line| !line.trim().is_empty())?.trim();
+    let tmdb_id = tmdb_id_regex()
+        .captures(text)
+        .and_then(|captures| captures.get(1))?
+        .as_str()
+        .parse::<i64>()
+        .ok()?;
+    let media_type = if first_line.contains("电影") {
+        "movie"
+    } else if first_line.contains("剧集")
+        || first_line.contains("电视剧")
+        || season_episode_regex().is_match(first_line)
+    {
+        "tv"
+    } else {
+        return None;
+    };
+    let title_section = first_line
+        .split_once(['：', ':'])
+        .map(|(_, value)| value.trim())
+        .unwrap_or(first_line);
+    let title = title_year_regex()
+        .captures(title_section)
+        .and_then(|captures| captures.get(1))
+        .map(|value| value.as_str().trim())
+        .filter(|value| !value.is_empty())
+        .unwrap_or(title_section)
+        .trim_matches(['[', ']', '【', '】'])
+        .trim();
+    if title.is_empty() {
+        return None;
+    }
+    let year = year_regex()
+        .captures(first_line)
+        .and_then(|captures| captures.get(1))
+        .and_then(|value| value.as_str().parse::<i32>().ok());
+    let season_episode = season_episode_regex().captures(text);
+    let season = season_episode
+        .as_ref()
+        .and_then(|captures| captures.get(1))
+        .and_then(|value| value.as_str().parse::<i32>().ok());
+    let episode = season_episode
+        .as_ref()
+        .and_then(|captures| captures.get(2))
+        .and_then(|value| value.as_str().parse::<i32>().ok());
+    let end_episode = season_episode_range_regex()
+        .captures(text)
+        .and_then(|captures| captures.get(3))
+        .and_then(|value| value.as_str().parse::<i32>().ok());
+    let quality = quality_from_message(text);
+    let size = size_from_message(text).unwrap_or_default();
+    Some(TelegramMediaMetadata {
+        title: title.to_string(),
+        tmdb_id,
+        media_type: media_type.to_string(),
+        year,
+        season,
+        episode,
+        end_episode,
+        quality,
+        size,
+    })
+}
+
 fn mediary_link_submit_payload(link: &ResourceLink) -> Value {
     match link.kind {
         ResourceLinkKind::Share115 => json!({"link": link.value}),
@@ -990,6 +1536,11 @@ fn mediary_link_submit_payload(link: &ResourceLink) -> Value {
 }
 
 fn extract_message_links(message: &Message) -> Vec<ResourceLink> {
+    let sources = message_link_sources(message);
+    extract_resource_links(message.text(), &sources)
+}
+
+fn message_link_sources(message: &Message) -> Vec<String> {
     let mut sources = vec![message.text().to_string()];
     if let Some(entities) = message.fmt_entities() {
         for entity in entities {
@@ -1020,7 +1571,7 @@ fn extract_message_links(message: &Message) -> Vec<ResourceLink> {
             }
         }
     }
-    extract_resource_links(message.text(), &sources)
+    sources
 }
 
 fn extract_resource_links(message_text: &str, sources: &[String]) -> Vec<ResourceLink> {
@@ -1152,7 +1703,22 @@ fn message_title(message: &Message, channel_name: &str) -> String {
 }
 
 fn configured_channels(settings: &Map<String, Value>) -> Result<Vec<String>, String> {
-    let raw = setting_text(settings, "channels");
+    configured_channel_setting(settings, "channels")
+}
+
+fn configured_report_channels(settings: &Map<String, Value>) -> Result<Vec<String>, String> {
+    if !setting_text(settings, "report_channels").trim().is_empty() {
+        configured_channel_setting(settings, "report_channels")
+    } else {
+        configured_channel_setting(settings, "subscription_channels")
+    }
+}
+
+fn configured_channel_setting(
+    settings: &Map<String, Value>,
+    setting_key: &str,
+) -> Result<Vec<String>, String> {
+    let raw = setting_text(settings, setting_key);
     let mut channels = Vec::new();
     let mut seen = HashSet::new();
     for item in raw.split(|character: char| {
@@ -1170,6 +1736,31 @@ fn configured_channels(settings: &Map<String, Value>) -> Result<Vec<String>, Str
         }
     }
     Ok(channels)
+}
+
+fn read_resource_report_state(data_dir: &Path) -> Result<ResourceReportState, String> {
+    let path = data_dir.join(RESOURCE_REPORT_STATE_FILE);
+    let path = if path.exists() {
+        path
+    } else {
+        data_dir.join(LEGACY_SUBSCRIPTION_STATE_FILE)
+    };
+    if !path.exists() {
+        return Ok(ResourceReportState::default());
+    }
+    let body = fs::read_to_string(&path)
+        .map_err(|error| format!("读取 Telegram 资源上报状态失败: {error}"))?;
+    serde_json::from_str(&body).map_err(|error| format!("解析 Telegram 资源上报状态失败: {error}"))
+}
+
+fn write_resource_report_state(data_dir: &Path, state: &ResourceReportState) -> Result<(), String> {
+    write_secure_json(&data_dir.join(RESOURCE_REPORT_STATE_FILE), state)
+}
+
+fn trim_report_history(history: &mut Vec<String>) {
+    if history.len() > MAX_REPORT_HISTORY {
+        history.drain(..history.len() - MAX_REPORT_HISTORY);
+    }
 }
 
 fn normalize_channel_token(value: &str) -> Result<String, String> {
@@ -1365,6 +1956,7 @@ fn logged_in_response(
     display_name: String,
     username: Option<String>,
     channel_count: usize,
+    report_channel_count: usize,
     notice: &str,
 ) -> Value {
     json!({
@@ -1375,7 +1967,8 @@ fn logged_in_response(
             "badges": [{"label": "已登录", "tone": "success"}],
             "metadata": [
                 {"label": "用户名", "value": username.map(|value| format!("@{value}")).unwrap_or_else(|| "-".to_string())},
-                {"label": "搜索频道", "value": channel_count}
+                {"label": "搜索频道", "value": channel_count},
+                {"label": "资源上报频道", "value": report_channel_count}
             ],
             "actions": [{
                 "type": "plugin_action",
@@ -1493,6 +2086,21 @@ fn setting_usize(
         .clamp(min, max)
 }
 
+fn setting_usize_alias(
+    settings: &Map<String, Value>,
+    key: &str,
+    legacy_key: &str,
+    default: usize,
+    min: usize,
+    max: usize,
+) -> usize {
+    value_i64(settings.get(key))
+        .or_else(|| value_i64(settings.get(legacy_key)))
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(default)
+        .clamp(min, max)
+}
+
 fn value_i64(value: Option<&Value>) -> Option<i64> {
     value.and_then(value_i64_ref)
 }
@@ -1547,6 +2155,88 @@ fn password_regex() -> &'static Regex {
     })
 }
 
+fn size_from_message(text: &str) -> Option<i64> {
+    let captures = size_regex().captures(text)?;
+    let value = captures.get(1)?.as_str().parse::<f64>().ok()?;
+    let multiplier = match captures.get(2)?.as_str().to_ascii_uppercase().as_str() {
+        "TB" => 1024_f64.powi(4),
+        "GB" => 1024_f64.powi(3),
+        "MB" => 1024_f64.powi(2),
+        "KB" => 1024_f64,
+        "B" => 1.0,
+        _ => return None,
+    };
+    Some((value * multiplier).round() as i64)
+}
+
+fn quality_from_message(text: &str) -> String {
+    if let Some(value) = quality_regex()
+        .captures(text)
+        .and_then(|captures| captures.get(1))
+    {
+        return value.as_str().trim().to_string();
+    }
+    text.lines()
+        .map(str::trim)
+        .find(|line| {
+            !line.to_ascii_lowercase().starts_with("ed2k://")
+                && resolution_regex().is_match(line)
+                && release_source_regex().is_match(line)
+        })
+        .map(str::to_string)
+        .unwrap_or_default()
+}
+
+fn size_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| {
+        Regex::new(r"(?i)(?:大小|体积)\s*[:：]\s*([0-9]+(?:\.[0-9]+)?)\s*(TB|GB|MB|KB|B)").unwrap()
+    })
+}
+
+fn quality_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"(?im)^(?:🎞️?\s*)?(?:质量|版本)\s*[:：]\s*(.+)$").unwrap())
+}
+
+fn resolution_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"(?i)\b(?:480p|720p|1080p|2160p|4K|8K)\b").unwrap())
+}
+
+fn release_source_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"(?i)(?:WEB[ .-]?DL|Blu[ .-]?Ray|REMUX|HDTV)").unwrap())
+}
+
+fn tmdb_id_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE
+        .get_or_init(|| Regex::new(r"(?i)(?:tmdb\s*id|tmdbid|tmdb)[\s:：_{}-]*(\d{2,10})").unwrap())
+}
+
+fn title_year_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"^(.+?)\s*[\(（](?:19|20)\d{2}[\)）]").unwrap())
+}
+
+fn year_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"[\(（]((?:19|20)\d{2})[\)）]").unwrap())
+}
+
+fn season_episode_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| Regex::new(r"(?i)\bS0*(\d{1,3})E0*(\d{1,5})").unwrap())
+}
+
+fn season_episode_range_regex() -> &'static Regex {
+    static VALUE: OnceLock<Regex> = OnceLock::new();
+    VALUE.get_or_init(|| {
+        Regex::new(r"(?i)\bS0*(\d{1,3})E0*(\d{1,5})(?:\s*-\s*E?0*(\d{1,5}))?").unwrap()
+    })
+}
+
 fn channel_username_regex() -> &'static Regex {
     static VALUE: OnceLock<Regex> = OnceLock::new();
     VALUE.get_or_init(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_]{2,31}$").unwrap())
@@ -1555,9 +2245,11 @@ fn channel_username_regex() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::{
-        FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind, append_115_password,
-        classify_resource_link, extract_resource_links, mediary_link_submit_payload,
-        normalize_channel_token, trim_link_punctuation,
+        FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind,
+        TelegramMediaMetadata, append_115_password, classify_resource_link,
+        direct_resource_payload, extract_resource_links, mediary_link_submit_payload,
+        normalize_channel_token, parse_ed2k_file, size_from_message, telegram_media_hint_from_text,
+        telegram_media_metadata_from_text, trim_link_punctuation,
     };
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
@@ -1614,7 +2306,7 @@ mod tests {
     fn manifest_requests_main_settings_for_proxy_reuse() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.1.3");
+        assert_eq!(manifest["version"], "0.2.0");
         assert_eq!(
             manifest["requested_scopes"],
             serde_json::json!(["integrations:run", "settings:read"])
@@ -1699,5 +2391,75 @@ mod tests {
         assert_eq!(payload["link"], "https://115.com/s/example");
         assert!(payload.get("offline_target").is_none());
         assert!(payload.get("flowlink_move_all_delay_seconds").is_none());
+    }
+
+    #[test]
+    fn parses_gimy_and_regeng_media_hints() {
+        let gimy = telegram_media_hint_from_text(
+            "[剧集]：黑色丽人 (2024)\nS03E01-E08 · 完结\n🍿 TMDB ID：246246",
+        )
+        .unwrap();
+        assert_eq!(gimy["tmdb_id"], 246246);
+        assert_eq!(gimy["media_type"], "tv");
+        assert_eq!(gimy["title"], "黑色丽人");
+        assert_eq!(gimy["year"], 2024);
+
+        let regeng = telegram_media_hint_from_text(
+            "📺 剧集：不眠 (2021) S03E02\n⭐️ TMDB评分：https://www.themoviedb.org/tv/126167\nED2K: ed2k://|file|demo.{tmdbid-126167}.mkv|1|HASH|/",
+        )
+        .unwrap();
+        assert_eq!(regeng["tmdb_id"], 126167);
+        assert_eq!(regeng["season"], 3);
+        assert_eq!(regeng["episodes"], serde_json::json!([2]));
+    }
+
+    #[test]
+    fn ed2k_carries_exact_file_name_and_byte_size() {
+        let link = "ed2k://|file|%E4%B8%8D%E7%9C%A0.2021.S03E02.1080p.mkv|1450891201|26b06170a0c58e02d54e3e2dc793bf88|/";
+        let (name, size) = parse_ed2k_file(link).unwrap();
+        assert_eq!(name, "不眠.2021.S03E02.1080p.mkv");
+        assert_eq!(size, 1_450_891_201);
+    }
+
+    #[test]
+    fn parses_bundle_size_quality_and_episode_range() {
+        let text = "[剧集]：黑色丽人 (2024)\nS03E01-E08 · 完结\n4K Netflix WEB-DL DV.HDR10 EAC3 5.1\n文件：8 个 ｜ 大小：50.17 GB\nTMDB ID：246246";
+        let metadata = telegram_media_metadata_from_text(text).unwrap();
+        assert_eq!(metadata.title, "黑色丽人");
+        assert_eq!(metadata.season, Some(3));
+        assert_eq!(metadata.episode, Some(1));
+        assert_eq!(metadata.end_episode, Some(8));
+        assert_eq!(metadata.quality, "4K Netflix WEB-DL DV.HDR10 EAC3 5.1");
+        assert_eq!(metadata.size, size_from_message(text).unwrap());
+        assert!(metadata.size > 50 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn gimy_bundle_and_episode_become_distinct_cloudhub_resources() {
+        let metadata = TelegramMediaMetadata {
+            title: "黑色丽人".to_string(),
+            tmdb_id: 246246,
+            media_type: "tv".to_string(),
+            year: Some(2024),
+            season: Some(3),
+            episode: Some(1),
+            end_episode: Some(8),
+            quality: "4K Netflix WEB-DL".to_string(),
+            size: 50 * 1024 * 1024 * 1024,
+        };
+        let share = classify_resource_link("https://115cdn.com/s/example?password=1234").unwrap();
+        let ed2k = classify_resource_link(
+            "ed2k://|file|Black.Beauty.S03E01.2160p.mkv|6533701550|7fcf681faadc5a6a8c163881bb9cadce|/",
+        )
+        .unwrap();
+        let bundle = direct_resource_payload(&metadata, &share, "gimy100", 1940).unwrap();
+        let episode = direct_resource_payload(&metadata, &ed2k, "gimy100", 1940).unwrap();
+        assert_eq!(bundle.payload["virtual_owner"], "share115");
+        assert_eq!(bundle.payload["is_full_season"], true);
+        assert_eq!(bundle.payload["episode"], 0);
+        assert_eq!(episode.payload["virtual_owner"], "ed2k");
+        assert_eq!(episode.payload["episode"], 1);
+        assert_eq!(episode.payload["size"], 6_533_701_550_i64);
+        assert_ne!(bundle.payload["sha1"], episode.payload["sha1"]);
     }
 }
