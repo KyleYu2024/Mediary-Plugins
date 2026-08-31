@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "telegram-resource",
   "name": "TG搜索",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "搜索 Telegram 频道，并实时监听指定频道的新消息，将 115 分享和 ed2k 直链资源提交到 CloudHub",
   "runtime": {
     "entrypoint": "./plugin"

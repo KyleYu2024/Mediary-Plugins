@@ -1323,6 +1323,7 @@ fn direct_resource_payload(
     if name.trim().is_empty() || size <= 0 {
         return None;
     }
+    let quality = normalize_quality_descriptor(&[&metadata.quality, &name]);
     let sha1 = format!("{:X}", Sha256::digest(link.key.as_bytes()));
     let mut payload = json!({
         "schema": "cloud_resource.v1",
@@ -1340,7 +1341,7 @@ fn direct_resource_payload(
         "start_season": season.unwrap_or_default(),
         "start_episode": start_episode.unwrap_or_default(),
         "is_full_season": is_full_season,
-        "quality": metadata.quality,
+        "quality": quality,
         "year": metadata.year,
         "virtual_owner": virtual_owner,
         "owner_name": if virtual_owner == "share115" { "115 分享" } else { "ED2K" },
@@ -2097,6 +2098,100 @@ fn quality_from_message(text: &str) -> String {
         .unwrap_or_default()
 }
 
+fn normalize_quality_descriptor(values: &[&str]) -> String {
+    let text = values
+        .iter()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    if text.is_empty() {
+        return String::new();
+    }
+    let lower = text.to_ascii_lowercase();
+    let mut parts = Vec::new();
+    let mut push = |value: &str| {
+        if !parts.iter().any(|existing| existing == value) {
+            parts.push(value.to_string());
+        }
+    };
+
+    if lower.contains("4320p") || quality_marker(&text, r"(?i)(?:^|[^a-z0-9])8k(?:$|[^a-z0-9])") {
+        push("4320p");
+    } else if lower.contains("2160p")
+        || quality_marker(&text, r"(?i)(?:^|[^a-z0-9])4k(?:$|[^a-z0-9])")
+    {
+        push("2160p");
+    } else if lower.contains("1080p") {
+        push("1080p");
+    } else if lower.contains("720p") {
+        push("720p");
+    } else if lower.contains("480p") {
+        push("480p");
+    }
+
+    if quality_marker(
+        &text,
+        r"(?i)(?:^|[^a-z0-9])(?:dovi|dv|dolby[ ._\-]?vision)(?:$|[^a-z0-9])",
+    ) {
+        push("Dolby Vision");
+    }
+    if quality_marker(&text, r"(?i)hdr10\+") {
+        push("HDR10+");
+    } else if quality_marker(&text, r"(?i)hdr10") {
+        push("HDR10");
+    } else if quality_marker(&text, r"(?i)(?:^|[^a-z0-9])hdr(?:$|[^a-z0-9])") {
+        push("HDR");
+    } else if quality_marker(&text, r"(?i)(?:^|[^a-z0-9])sdr(?:$|[^a-z0-9])") {
+        push("SDR");
+    }
+
+    if lower.contains("remux") {
+        push("REMUX");
+    } else if quality_marker(&text, r"(?i)web[ ._\-]?dl") {
+        push("WEB-DL");
+    } else if quality_marker(&text, r"(?i)web[ ._\-]?rip") {
+        push("WEBRip");
+    } else if quality_marker(&text, r"(?i)blu[ ._\-]?ray") {
+        push("BluRay");
+    } else if lower.contains("hdtv") {
+        push("HDTV");
+    }
+
+    if quality_marker(&text, r"(?i)(?:hevc|h[ .]?265|x265)") {
+        push("HEVC");
+    } else if quality_marker(&text, r"(?i)(?:avc|h[ .]?264|x264)") {
+        push("AVC");
+    } else if lower.contains("av1") {
+        push("AV1");
+    }
+    if let Some(bit_depth) = quality_capture(&text, r"(?i)(8|10|12)[ ._\-]?bit", 1) {
+        push(&format!("{bit_depth}-bit"));
+    }
+    if let Some(fps) = quality_capture(&text, r"(?i)(\d{2,3})[ ._\-]?fps", 1) {
+        push(&format!("{fps}fps"));
+    }
+    if quality_marker(
+        &text,
+        r"(?i)(?:^|[^a-z0-9])(?:hq|high[ ._\-]?quality)(?:$|[^a-z0-9])",
+    ) {
+        push("HQ");
+    }
+    parts.join(" ")
+}
+
+fn quality_marker(text: &str, pattern: &str) -> bool {
+    Regex::new(pattern).is_ok_and(|regex| regex.is_match(text))
+}
+
+fn quality_capture(text: &str, pattern: &str, group: usize) -> Option<String> {
+    Regex::new(pattern)
+        .ok()?
+        .captures(text)?
+        .get(group)
+        .map(|value| value.as_str().to_string())
+}
+
 fn size_regex() -> &'static Regex {
     static VALUE: OnceLock<Regex> = OnceLock::new();
     VALUE.get_or_init(|| {
@@ -2158,8 +2253,9 @@ mod tests {
         FLOWLINK_MOVE_ALL_DELAY_SECONDS, HttpConnectBridge, ResourceLinkKind,
         TelegramMediaMetadata, append_115_password, classify_resource_link,
         direct_resource_payload, extract_resource_links, mediary_link_submit_payload,
-        normalize_channel_token, parse_ed2k_file, report_channel_for_peer, size_from_message,
-        telegram_media_hint_from_text, telegram_media_metadata_from_text, trim_link_punctuation,
+        normalize_channel_token, normalize_quality_descriptor, parse_ed2k_file,
+        report_channel_for_peer, size_from_message, telegram_media_hint_from_text,
+        telegram_media_metadata_from_text, trim_link_punctuation,
     };
     use grammers_session::types::PeerId;
     use std::collections::HashMap;
@@ -2218,7 +2314,7 @@ mod tests {
     fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.2");
+        assert_eq!(manifest["version"], "0.2.3");
         assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
         assert!(manifest.get("scheduled_actions").is_none());
         let fields = manifest["settings_schema"]["sections"]
@@ -2401,7 +2497,25 @@ mod tests {
         assert_eq!(episode.payload["virtual_owner"], "ed2k");
         assert_eq!(episode.payload["episode"], 1);
         assert_eq!(episode.payload["size"], 6_533_701_550_i64);
+        assert_eq!(episode.payload["quality"], "2160p WEB-DL");
         assert_ne!(bundle.payload["sha1"], episode.payload["sha1"]);
+    }
+
+    #[test]
+    fn normalizes_video_quality_without_audio_parameters() {
+        assert_eq!(
+            normalize_quality_descriptor(&[
+                "4K WEB-DL DV 60fps EAC3 5.1",
+                "抓特务 (2026) - 2160p.WEB-DL.DoVi.HEVC.60fps.EAC3 5.1.mp4",
+            ]),
+            "2160p Dolby Vision WEB-DL HEVC 60fps"
+        );
+        assert_eq!(
+            normalize_quality_descriptor(&[
+                "2160p SDR WEB-DL H.265.10-bit.25fps.High Quality AAC 2.0",
+            ]),
+            "2160p SDR WEB-DL HEVC 10-bit 25fps HQ"
+        );
     }
 
     #[test]
