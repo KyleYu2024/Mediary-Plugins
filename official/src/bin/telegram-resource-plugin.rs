@@ -2055,7 +2055,7 @@ fn magnet_regex() -> &'static Regex {
 
 fn ed2k_regex() -> &'static Regex {
     static VALUE: OnceLock<Regex> = OnceLock::new();
-    VALUE.get_or_init(|| Regex::new(r#"(?i)ed2k://\|file\|[^\s<>\"']+"#).unwrap())
+    VALUE.get_or_init(|| Regex::new(r#"(?i)ed2k://\|file\|[^\r\n<>\"']*?\|/"#).unwrap())
 }
 
 fn password_regex() -> &'static Regex {
@@ -2218,7 +2218,7 @@ mod tests {
     fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.1");
+        assert_eq!(manifest["version"], "0.2.2");
         assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
         assert!(manifest.get("scheduled_actions").is_none());
         let fields = manifest["settings_schema"]["sections"]
@@ -2346,6 +2346,20 @@ mod tests {
         let (name, size) = parse_ed2k_file(link).unwrap();
         assert_eq!(name, "不眠.2021.S03E02.1080p.mkv");
         assert_eq!(size, 1_450_891_201);
+    }
+
+    #[test]
+    fn extracts_complete_ed2k_links_when_file_names_contain_spaces() {
+        let link = "ed2k://|file|抓特务 (2026) - 2160p.WEB-DL.DoVi.HEVC.60fps.EAC3 5.1.{tmdb-1305672}.mp4|30465381435|d4b2c5098fdde7ecda64f93d62e08073|/";
+        let links = extract_resource_links(link, &[link.to_string()]);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].value, link);
+        let (name, size) = parse_ed2k_file(&links[0].value).unwrap();
+        assert_eq!(
+            name,
+            "抓特务 (2026) - 2160p.WEB-DL.DoVi.HEVC.60fps.EAC3 5.1.{tmdb-1305672}.mp4"
+        );
+        assert_eq!(size, 30_465_381_435);
     }
 
     #[test]
