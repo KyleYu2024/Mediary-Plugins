@@ -1475,7 +1475,12 @@ fn telegram_media_metadata_from_text(text: &str) -> Option<TelegramMediaMetadata
         .captures(first_line)
         .and_then(|captures| captures.get(1))
         .and_then(|value| value.as_str().parse::<i32>().ok());
-    let season_episode = season_episode_regex().captures(text);
+    // Strip links before reading season markers. The full message contains URL
+    // passwords such as `password=s562`, which must never become season 562;
+    // season markers may still appear on a separate metadata line.
+    let links_removed = http_url_regex().replace_all(text, " ");
+    let season_text = ed2k_regex().replace_all(&links_removed, " ");
+    let season_episode = season_episode_regex().captures(&season_text);
     let season = season_episode
         .as_ref()
         .and_then(|captures| captures.get(1))
@@ -1485,11 +1490,11 @@ fn telegram_media_metadata_from_text(text: &str) -> Option<TelegramMediaMetadata
         .and_then(|captures| captures.get(2))
         .and_then(|value| value.as_str().parse::<i32>().ok());
     let end_episode = season_episode_range_regex()
-        .captures(text)
+        .captures(&season_text)
         .and_then(|captures| captures.get(3))
         .and_then(|value| value.as_str().parse::<i32>().ok());
     let seasons = season_token_regex()
-        .find_iter(text)
+        .find_iter(&season_text)
         .filter_map(|value| value.as_str()[1..].parse::<i32>().ok())
         .collect::<Vec<_>>();
     let start_season = seasons.iter().copied().min().or(season);
@@ -2355,7 +2360,7 @@ mod tests {
     fn manifest_declares_realtime_runtime_without_scheduled_polling() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../../telegram-resource/plugin.json")).unwrap();
-        assert_eq!(manifest["version"], "0.2.4");
+        assert_eq!(manifest["version"], "0.2.5");
         assert_eq!(manifest["runtime"]["entrypoint"], "./plugin");
         assert!(manifest.get("scheduled_actions").is_none());
         let fields = manifest["settings_schema"]["sections"]
@@ -2561,6 +2566,23 @@ mod tests {
         assert_eq!(resource.payload["start_season"], 1);
         assert_eq!(resource.payload["start_episode"], 0);
         assert_eq!(resource.payload["is_full_season"], true);
+    }
+
+    #[test]
+    fn share_password_is_not_interpreted_as_a_season() {
+        let text = "📺 电视剧：他告诉我的最后一件事 (2023) - S02E01-E08(完结)\n🍿 TMDB ID: 201289\n🎞️ 质量: WEB-DL 2160p DV\n💾 大小: 66.12 GB\n🔗 链接: https://115cdn.com/s/swfj7yz3wov?password=s562";
+        let metadata = telegram_media_metadata_from_text(text).unwrap();
+        assert_eq!(metadata.start_season, Some(2));
+        assert_eq!(metadata.end_season, Some(2));
+        let share =
+            classify_resource_link("https://115cdn.com/s/swfj7yz3wov?password=s562").unwrap();
+        let resource = direct_resource_payload(&metadata, &share, "gimy100", 973).unwrap();
+        assert_eq!(resource.payload["season"], 2);
+        assert_eq!(resource.payload["start_season"], 2);
+        assert_eq!(
+            resource.payload["name"],
+            "他告诉我的最后一件事 (2023) S02E01-E08 2160p Dolby Vision WEB-DL"
+        );
     }
 
     #[test]

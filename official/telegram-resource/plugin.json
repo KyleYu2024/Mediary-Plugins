@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "telegram-resource",
   "name": "TG搜索",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "搜索 Telegram 频道，并实时监听指定频道的新消息，将 115 分享和 ed2k 直链资源提交到 CloudHub",
   "runtime": {
     "entrypoint": "./plugin"
@@ -133,7 +133,6 @@
       },
       {
         "title": "CloudHub 资源上报",
-        "alert": "插件使用 Telegram 用户 API 长连接，只实时处理这里明确配置的频道；私聊、群组、搜索频道和其他已加入频道全部忽略。新消息或消息编辑命中后立即上报 CloudHub，短暂断线会通过 Telegram update state 补齐。115 分享按整季/整部上报，正文或 Telegra.ph 中的每条 ed2k 按实际文件分别上报。",
         "fields": [
           {
             "key": "report_channels",
