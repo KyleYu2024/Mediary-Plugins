@@ -37,7 +37,7 @@ const minimumMediaryVersions = {
   'subscribe-reminder': '0.8.10',
   seerr: '1.9.0',
   'pt-site-message': '1.9.9',
-  'hdhive-trending': '1.9.8',
+  'hdhive-trending': '2.6.1',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 

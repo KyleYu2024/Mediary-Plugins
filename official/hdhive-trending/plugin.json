@@ -2,7 +2,7 @@
   "api_version": 1,
   "id": "hdhive-trending",
   "name": "影巢趋势",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "每 6 小时读取影巢 TG 频道的官组发布，按 Mediary 二级分类自动创建订阅",
   "action_runtime": {
     "entrypoint": "./plugin"
@@ -24,6 +24,7 @@
   ],
   "auto_grant_scopes": true,
   "settings_schema": {
+    "status_action": "status",
     "sections": [
       {
         "title": "运行设置",
@@ -51,38 +52,8 @@
             "key": "secondary_categories",
             "type": "multiselect",
             "label": "二级分类",
-            "default": [
-              "英文动画-电影",
-              "日漫-剧场版",
-              "国漫-电影版",
-              "纪录片-电影版",
-              "电影-中文",
-              "电影-外文",
-              "国漫",
-              "日漫-TV版",
-              "英文动画-TV版",
-              "纪录片",
-              "综艺",
-              "电视剧-中文",
-              "电视剧-日韩",
-              "电视剧-欧美"
-            ],
-            "options": [
-              { "label": "英文动画-电影", "value": "英文动画-电影" },
-              { "label": "日漫-剧场版", "value": "日漫-剧场版" },
-              { "label": "国漫-电影版", "value": "国漫-电影版" },
-              { "label": "纪录片-电影版", "value": "纪录片-电影版" },
-              { "label": "电影-中文", "value": "电影-中文" },
-              { "label": "电影-外文", "value": "电影-外文" },
-              { "label": "国漫", "value": "国漫" },
-              { "label": "日漫-TV版", "value": "日漫-TV版" },
-              { "label": "英文动画-TV版", "value": "英文动画-TV版" },
-              { "label": "纪录片", "value": "纪录片" },
-              { "label": "综艺", "value": "综艺" },
-              { "label": "电视剧-中文", "value": "电视剧-中文" },
-              { "label": "电视剧-日韩", "value": "电视剧-日韩" },
-              { "label": "电视剧-欧美", "value": "电视剧-欧美" }
-            ],
+            "default": [],
+            "help": "启用插件后打开配置，选项会从当前 Mediary 的 category.yaml 动态读取；不勾选表示全部分类。",
             "span": 2
           },
           {
@@ -107,7 +78,7 @@
       },
       {
         "title": "说明",
-        "alert": "插件读取公开 TG 频道 oneonefivewpfx，不需要 TG Token。频道消息中的发布者和 TMDB ID 用于发现候选，二级分类由 Mediary 的 TMDB 详情接口识别；同一电影或剧集已有任意订阅时会跳过。",
+        "alert": "插件读取公开 TG 频道 oneonefivewpfx，不需要 TG Token。配置页的二级分类来自当前 Mediary；官组消息会先按媒体类型和 TMDB ID 合并，同一影视只处理一次，已有任意订阅时跳过。",
         "fields": []
       }
     ]
@@ -117,7 +88,9 @@
     "file": "data/records.json",
     "item_label": "处理记录",
     "summary": [
-      { "key": "fetched", "label": "读取消息" },
+      { "key": "fetched", "label": "频道消息" },
+      { "key": "official_messages", "label": "官组消息" },
+      { "key": "unique_candidates", "label": "唯一影视" },
       { "key": "subscribed", "label": "新增订阅" },
       { "key": "skipped_existing", "label": "已有订阅" },
       { "key": "last_result", "label": "最近结果" }
