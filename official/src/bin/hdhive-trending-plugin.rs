@@ -66,7 +66,11 @@ struct Summary {
     #[serde(default)]
     fetched: usize,
     #[serde(default)]
-    considered: usize,
+    official_messages: usize,
+    #[serde(default)]
+    unique_candidates: usize,
+    #[serde(default)]
+    duplicate_messages: usize,
     #[serde(default)]
     subscribed: usize,
     #[serde(default)]
@@ -150,7 +154,9 @@ struct ResolvedMedia {
 struct RunReport {
     ran_at: String,
     fetched: usize,
-    considered: usize,
+    official_messages: usize,
+    unique_candidates: usize,
+    duplicate_messages: usize,
     subscribed: usize,
     skipped_history: usize,
     skipped_existing: usize,
@@ -169,6 +175,10 @@ async fn main() {
 async fn run() -> Result<(), String> {
     let context = PluginContext::from_env()?;
     let action = env::var("MEDIARY_PLUGIN_ACTION").unwrap_or_default();
+    if action == "status" {
+        println!("{}", category_status(&context).await?);
+        return Ok(());
+    }
     if action != "refresh" {
         return Err(format!("不支持的影巢趋势动作: {action}"));
     }
@@ -181,18 +191,24 @@ async fn run() -> Result<(), String> {
 
     records.summary = Summary {
         fetched: report.fetched,
-        considered: report.considered,
+        official_messages: report.official_messages,
+        unique_candidates: report.unique_candidates,
+        duplicate_messages: report.duplicate_messages,
         subscribed: report.subscribed,
         skipped_existing: report.skipped_existing,
         skipped_category: report.skipped_category,
         skipped_history: report.skipped_history,
         failures: report.failures.len(),
         last_result: format!(
-            "读取 {} 条，新增订阅 {} 条，已有订阅 {} 条，分类跳过 {} 条，失败 {} 条",
+            "频道 {} 条，官组消息 {} 条，唯一影视 {} 部，合并重复 {} 条，新增订阅 {} 部，已有订阅 {} 部，分类跳过 {} 部，历史跳过 {} 部，失败 {} 部",
             report.fetched,
+            report.official_messages,
+            report.unique_candidates,
+            report.duplicate_messages,
             report.subscribed,
             report.skipped_existing,
             report.skipped_category,
+            report.skipped_history,
             report.failures.len()
         ),
     };
@@ -254,9 +270,9 @@ async fn refresh(
             DEFAULT_PUBLISHERS
                 .iter()
                 .map(|value| value.to_string())
-                .collect()
+                .collect::<HashSet<_>>()
         } else {
-            values
+            values.into_iter().collect::<HashSet<_>>()
         }
     };
     let requested_categories = setting_list(&context.settings, "secondary_categories");
@@ -283,10 +299,17 @@ async fn refresh(
         }
     };
 
+    let messages = messages.into_iter().take(max_messages).collect::<Vec<_>>();
+    let fetched = messages.len();
+    let (messages, official_messages) = unique_official_messages(messages, &publishers);
+    let unique_candidates = messages.len();
+    let duplicate_messages = official_messages.saturating_sub(unique_candidates);
     let mut report = RunReport {
         ran_at: Local::now().to_rfc3339(),
-        fetched: messages.len().min(max_messages),
-        considered: 0,
+        fetched,
+        official_messages,
+        unique_candidates,
+        duplicate_messages,
         subscribed: 0,
         skipped_history: 0,
         skipped_existing: 0,
@@ -296,19 +319,11 @@ async fn refresh(
     let mut processed = state.processed.iter().cloned().collect::<HashSet<_>>();
     let mut existing = fetch_existing_subscription_keys(context).await?;
 
-    for message in messages.into_iter().take(max_messages) {
+    for message in messages {
         if processed.contains(&message.id) {
             report.skipped_history += 1;
             continue;
         }
-        if !publishers
-            .iter()
-            .any(|publisher| publisher == &message.publisher)
-        {
-            processed_message(state, &mut processed, &message.id);
-            continue;
-        }
-        report.considered += 1;
         let resolved = match fetch_tmdb_details(context, &message).await {
             Ok(value) => value,
             Err(error) => {
@@ -347,6 +362,58 @@ async fn refresh(
         }
     }
     Ok(report)
+}
+
+async fn category_status(context: &PluginContext) -> Result<Value, String> {
+    let categories = fetch_filter_categories(context).await?;
+    let movie_count = categories.movie.len();
+    let tv_count = categories.tv.len();
+    let mut seen = HashSet::new();
+    let options = categories
+        .movie
+        .into_iter()
+        .map(|category| ("电影", category))
+        .chain(categories.tv.into_iter().map(|category| ("剧集", category)))
+        .filter(|(_, category)| seen.insert(category.clone()))
+        .map(|(media_type, category)| {
+            json!({
+                "label": format!("{media_type} · {category}"),
+                "value": category,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(json!({
+        "notice": format!("已读取当前 Mediary 的 {} 个二级分类。", options.len()),
+        "items": [{
+            "key": "secondary-categories",
+            "title": "Mediary 二级分类",
+            "subtitle": "以下选项来自当前实例的 category.yaml，不再使用插件内置列表。",
+            "metadata": [
+                {"label": "电影", "value": format!("{movie_count} 个")},
+                {"label": "剧集", "value": format!("{tv_count} 个")}
+            ]
+        }],
+        "form_options": {
+            "secondary_categories": options
+        }
+    }))
+}
+
+fn unique_official_messages(
+    messages: Vec<TelegramMessage>,
+    publishers: &HashSet<String>,
+) -> (Vec<TelegramMessage>, usize) {
+    let mut seen = HashSet::new();
+    let official = messages
+        .into_iter()
+        .filter(|message| publishers.contains(&message.publisher))
+        .collect::<Vec<_>>();
+    let official_count = official.len();
+    let unique = official
+        .into_iter()
+        .filter(|message| seen.insert(media_identity(&message.media_type, message.tmdb_id)))
+        .collect();
+    (unique, official_count)
 }
 
 async fn fetch_telegram_messages(context: &PluginContext) -> Result<Vec<TelegramMessage>, String> {
@@ -737,6 +804,34 @@ mod tests {
     fn subscription_identity_ignores_season_for_simple_deduplication() {
         assert_eq!(media_identity("tv", 294487), "tv:294487");
         assert_eq!(media_identity("movie", 123), "movie:123");
+    }
+
+    #[test]
+    fn official_messages_are_deduplicated_by_media_identity() {
+        let message = |id: &str, publisher: &str, tmdb_id| TelegramMessage {
+            id: id.to_string(),
+            published_at: String::new(),
+            title: format!("媒体 {tmdb_id}"),
+            media_type: "tv".to_string(),
+            publisher: publisher.to_string(),
+            tmdb_id,
+            season: Some(1),
+        };
+        let publishers = ["冷".to_string(), "白可乐".to_string()]
+            .into_iter()
+            .collect::<HashSet<_>>();
+        let (unique, official_count) = unique_official_messages(
+            vec![
+                message("3", "冷", 100),
+                message("2", "白可乐", 100),
+                message("1", "普通用户", 200),
+            ],
+            &publishers,
+        );
+
+        assert_eq!(official_count, 2);
+        assert_eq!(unique.len(), 1);
+        assert_eq!(unique[0].id, "3");
     }
 
     #[test]
