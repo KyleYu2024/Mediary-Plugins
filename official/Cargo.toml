@@ -51,6 +51,10 @@ path = "src/bin/telegram-resource-plugin.rs"
 name = "hdhive-trending-plugin"
 path = "src/bin/hdhive-trending-plugin.rs"
 
+[[bin]]
+name = "music-downloader-plugin"
+path = "src/bin/music-downloader-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 base64 = "0.22"
