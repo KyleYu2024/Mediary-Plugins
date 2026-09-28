@@ -1,0 +1,38 @@
+{
+  "id": "tmdb-cast",
+  "name": "TMDB 演员资料",
+  "version": "0.1.0",
+  "description": "从 TMDB 同步内置媒体库的演员、角色和演员关联作品",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.38/official/tmdb-cast",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.38/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "2.9.8",
+  "permissions": [
+    "catalog:read",
+    "media-cast:write"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/tmdb-cast-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "0ac92fcdc3d6d76ee2ed95b68e28b74784ea68d7e5c3c62116d660bd9a08c31a",
+      "size": 2156521
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/tmdb-cast-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "e1359049ef76434db2af9dd9c6e03b6cd821797effb8b86ed6fe2a7c04792ae2",
+      "size": 2158957
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/tmdb-cast-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "af36f827f261b4cfef5a4677d2711cfe21b2816c51ac29a8b2d9fae107e71d03",
+      "size": 2040322
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/tmdb-cast-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "e3b65bff1b965d4a9b9aa33fbdb05f0e9b5dd4bd9cbe76829b67d5e609b7ae56",
+      "size": 1967077
+    }
+  }
+}
