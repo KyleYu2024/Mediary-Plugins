@@ -9,7 +9,7 @@ use std::{
 };
 
 const BATCH_SIZE: usize = 50;
-const MAX_ITEMS_PER_RUN: usize = 150;
+const DEFAULT_BATCH_LIMIT: usize = 150;
 
 #[derive(Deserialize)]
 struct Settings {
@@ -17,12 +17,17 @@ struct Settings {
     language: String,
     #[serde(default = "default_cast_limit")]
     cast_limit: usize,
+    #[serde(default = "default_batch_limit")]
+    batch_limit: usize,
 }
 fn default_language() -> String {
     "zh-CN".into()
 }
 fn default_cast_limit() -> usize {
     15
+}
+fn default_batch_limit() -> usize {
+    DEFAULT_BATCH_LIMIT
 }
 
 #[derive(Deserialize)]
@@ -104,13 +109,14 @@ async fn run() -> Result<Value, String> {
         .build()
         .map_err(|err| err.to_string())?;
     let limit = settings.cast_limit.clamp(1, 30);
+    let batch_limit = settings.batch_limit;
     let mut after_at = String::new();
     let mut after_id = String::new();
     let mut succeeded = 0;
     let mut failed = 0;
     let mut processed = 0;
     let mut people_cache = HashMap::new();
-    while processed < MAX_ITEMS_PER_RUN {
+    while batch_limit == 0 || processed < batch_limit {
         let pending = client
             .get(format!("{api_url}/plugin/media-cast/pending"))
             .bearer_auth(&token)
@@ -152,7 +158,7 @@ async fn run() -> Result<Value, String> {
                     eprintln!("作品 {} 演员同步失败: {error}", item.id);
                 }
             }
-            if processed >= MAX_ITEMS_PER_RUN {
+            if batch_limit != 0 && processed >= batch_limit {
                 break;
             }
         }
