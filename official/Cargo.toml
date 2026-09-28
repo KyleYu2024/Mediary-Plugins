@@ -16,6 +16,10 @@ name = "tmdb-trending-plugin"
 path = "src/bin/tmdb-trending-plugin.rs"
 
 [[bin]]
+name = "tmdb-cast-plugin"
+path = "src/bin/tmdb-cast-plugin.rs"
+
+[[bin]]
 name = "subscribe-reminder-plugin"
 path = "src/bin/subscribe-reminder-plugin.rs"
 
