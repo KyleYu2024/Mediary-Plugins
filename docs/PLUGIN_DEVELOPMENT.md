@@ -305,7 +305,8 @@ Mediary 标题解析结果。
 | Scope | 允许的主要路由 |
 | --- | --- |
 | `dashboard:read` | `GET /dashboard/summary`、`GET /dashboard/emby` |
-| `catalog:read` | `GET /search/tmdb`、`GET /search/tmdb/details`、`POST /tmdb/resolve` |
+| `catalog:read` | `GET /search/tmdb`、`GET /search/tmdb/details`、`POST /tmdb/resolve`、`GET /plugin/media-cast/pending`、`GET /plugin/tmdb/credits/:media_type/:id`、`GET /plugin/tmdb/person/:id` |
+| `media-cast:write` | `PUT /plugin/media-cast/:id`，写入演员资料及作品关联 |
 | `subscriptions:read` | `GET /subscriptions`、`GET /subscriptions/*` |
 | `subscriptions:write` | `POST /subscriptions`、其他非 GET `/subscriptions/*` |
 | `downloads:read` | `GET /downloads`、`GET /downloads/*`、下载/转移历史 |
