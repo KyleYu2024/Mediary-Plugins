@@ -4,8 +4,8 @@
   "version": "0.1.1",
   "description": "每 6 小时读取影巢 TG 频道的官组发布，按 Mediary 二级分类自动创建订阅",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.38/official/hdhive-trending",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.38/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official/hdhive-trending",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "2.6.1",
@@ -17,23 +17,23 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/hdhive-trending-v0.1.1-linux-amd64.tar.gz",
-      "sha256": "bf620d37e6e8becfe94b475a27a242269e59345340dae3bf66d7e69080ed3ca4",
-      "size": 3084685
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/hdhive-trending-v0.1.1-linux-amd64.tar.gz",
+      "sha256": "efc11c4c3234911317fff8fbd45de805cbfba66d0bf1b9c85233c6a90b50cb13",
+      "size": 3084692
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/hdhive-trending-v0.1.1-linux-arm64.tar.gz",
-      "sha256": "5a156b901527198c8f47896f655d135f65f2355534897132fe3c30508cf64435",
-      "size": 3074302
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/hdhive-trending-v0.1.1-linux-arm64.tar.gz",
+      "sha256": "34ad37e89b2392f6c669b396be4893970a2808127773c12aaaa9c6cfd80f073d",
+      "size": 3074299
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/hdhive-trending-v0.1.1-darwin-amd64.tar.gz",
-      "sha256": "4f11e86bcac025679af878e55dcfc4cd073d9965b71a6f15ecdb8bb8076f8440",
-      "size": 2915750
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/hdhive-trending-v0.1.1-darwin-amd64.tar.gz",
+      "sha256": "a76f273a34660ca19fef566c9b4f14b397d8a8eff8dd5b05aa2af4c5d29d1837",
+      "size": 2915763
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.38/hdhive-trending-v0.1.1-darwin-arm64.tar.gz",
-      "sha256": "435cd129d2988ba0df3d817e82d0149c998ca24b5620a8a47ca0667c4c0bf507",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/hdhive-trending-v0.1.1-darwin-arm64.tar.gz",
+      "sha256": "6690ace08ccf8c8be5bb61c36778ac51a5b17d92db4db86769b106121b6b9a70",
       "size": 2777208
     }
   }
