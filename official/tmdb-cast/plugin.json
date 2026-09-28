@@ -2,11 +2,11 @@
   "api_version": 1,
   "id": "tmdb-cast",
   "name": "TMDB 演员资料",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "从 TMDB 同步内置媒体库的演员、角色和演员关联作品",
   "action_runtime": { "entrypoint": "./plugin" },
   "scheduled_actions": [
-    { "action": "sync", "label": "同步演员数据", "manual": true, "cron_setting": "cron", "timeout_seconds": 900 }
+    { "action": "sync", "label": "同步演员数据", "manual": true, "cron_setting": "cron", "timeout_seconds": 86400 }
   ],
   "requested_scopes": ["catalog:read", "media-cast:write"],
   "auto_grant_scopes": true,
@@ -19,7 +19,8 @@
           { "label": "简体中文", "value": "zh-CN" },
           { "label": "English", "value": "en-US" }
         ] },
-        { "key": "cast_limit", "type": "number", "label": "每部作品最多演员数", "default": 15, "min": 1, "max": 30 }
+        { "key": "cast_limit", "type": "number", "label": "每部作品最多演员数", "default": 15, "min": 1, "max": 30 },
+        { "key": "batch_limit", "type": "number", "label": "每次最多处理作品数", "help": "默认 150；设为 0 则处理全部待同步作品", "default": 150, "min": 0, "max": 10000 }
       ] }
     ]
   }
