@@ -4,8 +4,8 @@
   "version": "0.2.0",
   "description": "聚合搜索 115 分享、磁力与 ed2k 资源；115 分享和 ed2k 进入 FlowLink 转存整理，磁力提交 115 离线下载",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official/pansou",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.40/official/pansou",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.40/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.8.0",
@@ -14,24 +14,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/pansou-v0.2.0-linux-amd64.tar.gz",
-      "sha256": "bd65fa175919d943c8ffbdfb382ce49e4a11b231798c0b79d3d0a57bf461e23a",
-      "size": 2322355
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/pansou-v0.2.0-linux-amd64.tar.gz",
+      "sha256": "b990eead9f00384deadf7a82dba43097dd3b9bf1be78f8e04f749f38741ae552",
+      "size": 2322356
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/pansou-v0.2.0-linux-arm64.tar.gz",
-      "sha256": "8929c92a53fe54544cb08b30181fe63e9bd961f531bafbc7ae2166e5ee2cba91",
-      "size": 2325423
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/pansou-v0.2.0-linux-arm64.tar.gz",
+      "sha256": "be6d378075b8c392da0090a419ada438c6bb2f9fef335cf31834b9d40f66427e",
+      "size": 2325419
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/pansou-v0.2.0-darwin-amd64.tar.gz",
-      "sha256": "7f9c86e293fd9ea8e53ea686a39986c272935706adc7030c25a38501ab654dfd",
-      "size": 2206254
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/pansou-v0.2.0-darwin-amd64.tar.gz",
+      "sha256": "1fd3fde532a17bdc652718e02651ecd2f3d489d78030fdd639c9c81d78ffc6b4",
+      "size": 2206252
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/pansou-v0.2.0-darwin-arm64.tar.gz",
-      "sha256": "4b0b1edc806e5161b59dbb30a60cf8fff0780e6dcd5a513fe297d53621fc6fb0",
-      "size": 2126416
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/pansou-v0.2.0-darwin-arm64.tar.gz",
+      "sha256": "a2f18d9ef1b58429bdd260dc886ebf7d4bf7dc3ba1255086cdb1d2a67e9f00ce",
+      "size": 2126414
     }
   }
 }

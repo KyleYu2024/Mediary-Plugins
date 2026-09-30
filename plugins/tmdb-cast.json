@@ -4,8 +4,8 @@
   "version": "0.2.0",
   "description": "从 TMDB 同步内置媒体库的演员、角色和演员关联作品",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official/tmdb-cast",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.39/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.40/official/tmdb-cast",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.40/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "2.9.8",
@@ -15,24 +15,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/tmdb-cast-v0.2.0-linux-amd64.tar.gz",
-      "sha256": "18623c68f1ed8d737eb65182a85d0bb7c11c4830ee4e9fe5173f9b3c21bab1a0",
-      "size": 2156603
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/tmdb-cast-v0.2.0-linux-amd64.tar.gz",
+      "sha256": "20c4cff691cb1681b128cb6cd75507a2c9072a5d7503076d998007cf4f029fd5",
+      "size": 2156604
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/tmdb-cast-v0.2.0-linux-arm64.tar.gz",
-      "sha256": "bfdce5786d35d0ed67655f6188f8c5e85eaf3aaee9800fc4ac959484a6fa5d85",
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/tmdb-cast-v0.2.0-linux-arm64.tar.gz",
+      "sha256": "f78138fef6859a349d9e9fd2381390db5c6c9ff9165e332a32e4da8c28522522",
       "size": 2159416
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/tmdb-cast-v0.2.0-darwin-amd64.tar.gz",
-      "sha256": "93fd0bdcf980666ab9e87721f769d4a811329283f36a85f572121cb56b1106c9",
-      "size": 2040463
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/tmdb-cast-v0.2.0-darwin-amd64.tar.gz",
+      "sha256": "1caa4ce24eaaca8c7241ab9315dfe1c2002ada600bfdba2a65408f83479a7211",
+      "size": 2040465
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.39/tmdb-cast-v0.2.0-darwin-arm64.tar.gz",
-      "sha256": "72bbcbd2054311b30d95e47fcaa77ab49dfb4b1fd336eaf324404edb1f7d8080",
-      "size": 1967753
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.40/tmdb-cast-v0.2.0-darwin-arm64.tar.gz",
+      "sha256": "3954d8b6b3ceed1658cebb7dfdab0bc38939aa102efd133dc48fc292919fb487",
+      "size": 1967751
     }
   }
 }
