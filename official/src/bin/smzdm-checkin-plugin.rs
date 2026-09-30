@@ -12,9 +12,9 @@ use std::{
 
 const CHECKIN_URL: &str = "https://user-api.smzdm.com/checkin";
 const TOKEN_URL: &str = "https://user-api.smzdm.com/robot/token";
-const IOS_VERSION: &str = "11.1.35";
+const IOS_VERSION: &str = "11.1.95";
 const IOS_USER_AGENT: &str =
-    "smzdm 11.1.35 rv:167 (iPhone 6s; iOS 15.8.3; zh_CN)/iphone_smzdmapp/11.1.35";
+    "smzdm 11.1.95 rv:173.8 (iPhone; iOS 18.0; zh_CN)/iphone_smzdmapp/11.1.95";
 const IOS_SIGN_KEY: &str = "zok5JtAq3$QixaA%mncn*jGWlEpSL3E1";
 const ANDROID_VERSION: &str = "10.4.1";
 const ANDROID_USER_AGENT: &str = "smzdm_android_V10.4.1 rv:841 (22021211RC;Android12;zh)smzdmapp";
@@ -316,18 +316,28 @@ async fn fetch_cookiecloud_cookie(context: &PluginContext) -> Result<String, Str
     let cookie = payload.cookie.trim().to_string();
     if cookie.is_empty() {
         Err("CookieCloud 中没有可供什么值得买签到接口使用的 Cookie".to_string())
+    } else if !has_session_cookie(&cookie) {
+        Err("CookieCloud 中的什么值得买 Cookie 缺少登录会话 sess，请在浏览器登录后重新同步".to_string())
     } else {
         Ok(cookie)
     }
+}
+
+fn has_session_cookie(cookie: &str) -> bool {
+    cookie.split(';').any(|part| {
+        part.trim()
+            .split_once('=')
+            .is_some_and(|(name, value)| name.trim() == "sess" && !value.trim().is_empty())
+    })
 }
 
 async fn perform_checkin(
     context: &PluginContext,
     cookie: &str,
 ) -> Result<CheckinOutcome, CheckinFailure> {
-    match android_checkin(context, cookie).await {
+    match ios_checkin(context, cookie).await {
         Ok(outcome) => Ok(outcome),
-        Err(error) if error.kind == FailureKind::Protocol => ios_checkin(context, cookie).await,
+        Err(error) if error.kind == FailureKind::Protocol => android_checkin(context, cookie).await,
         Err(error) => Err(error),
     }
 }
@@ -342,7 +352,7 @@ async fn ios_checkin(
         ("time", unix_millis()?.to_string()),
         ("v", IOS_VERSION.to_string()),
         ("weixin", "1".to_string()),
-        ("zhuanzai_ab", "b".to_string()),
+        ("zhuanzai_ab", "d".to_string()),
     ]);
     form.insert("sign", sign_form(&form, IOS_SIGN_KEY));
     let payload = post_form(
@@ -480,6 +490,7 @@ fn parse_checkin_response(
     }
 
     let data = payload.get("data").unwrap_or(&Value::Null);
+    // cpadd is this run's reward; cpoints is the account's total balance.
     let points = data.get("cpadd").and_then(value_i64);
     let continuous_day = data.get("daily_num").and_then(value_i64);
     let status = if is_already_done(&api_message) {
@@ -765,13 +776,13 @@ mod tests {
             ("basic_v", "0".to_string()),
             ("f", "iphone".to_string()),
             ("time", "1700000000000".to_string()),
-            ("v", "11.1.35".to_string()),
+            ("v", "11.1.95".to_string()),
             ("weixin", "1".to_string()),
-            ("zhuanzai_ab", "b".to_string()),
+            ("zhuanzai_ab", "d".to_string()),
         ]);
         assert_eq!(
             sign_form(&form, IOS_SIGN_KEY),
-            "86452DB19C4BB57C02CE4F0B21F9B60E"
+            "0F27A7A5CF33128BD9DC9E7408CD0550"
         );
     }
 
@@ -842,6 +853,27 @@ mod tests {
     }
 
     #[test]
+    fn does_not_report_total_balance_as_earned_points() {
+        let outcome = parse_checkin_response(
+            &json!({
+                "error_code": "0",
+                "error_msg": "签到成功",
+                "data": { "cpoints": "432", "cpadd": "5", "daily_num": "19" }
+            }),
+            "iOS",
+        )
+        .unwrap();
+        assert_eq!(outcome.points, Some(5));
+        assert_eq!(outcome.continuous_day, Some(19));
+        let without_reward = parse_checkin_response(
+            &json!({"error_code": "0", "data": {"cpoints": "432"}}),
+            "iOS",
+        )
+        .unwrap();
+        assert_eq!(without_reward.points, None);
+    }
+
+    #[test]
     fn duplicate_checkin_is_idempotent_success() {
         let outcome = parse_checkin_response(
             &json!({ "error_code": 1, "error_msg": "今日已签到" }),
@@ -850,6 +882,19 @@ mod tests {
         .unwrap();
         assert_eq!(outcome.status, CheckinStatus::AlreadyDone);
         assert_eq!(outcome.protocol, "Android");
+
+        let current_ios = parse_checkin_response(
+            &json!({
+                "error_code": "0",
+                "error_msg": "已签到",
+                "data": {"checkin_gen2": "b", "is_signed_today": "1", "cpadd": "0", "cpoints": "432", "daily_num": "1"}
+            }),
+            "iOS",
+        )
+        .unwrap();
+        assert_eq!(current_ios.status, CheckinStatus::AlreadyDone);
+        assert_eq!(current_ios.continuous_day, Some(1));
+        assert!(!current_ios.message.contains("432"));
     }
 
     #[test]
@@ -877,6 +922,13 @@ mod tests {
     fn rejects_multiple_manual_accounts() {
         let error = parse_manual_cookie("a=1; b=2\n\nc=3; d=4\r\n").unwrap_err();
         assert!(error.contains("只支持一个账号"));
+    }
+
+    #[test]
+    fn rejects_cookiecloud_tracking_cookie_without_login_session() {
+        assert!(!has_session_cookie("sensorsdata2015jssdkcross=tracking"));
+        assert!(has_session_cookie("other=1; sess=active-session; smzdm_id=2"));
+        assert!(!has_session_cookie("other=1; sess= ; smzdm_id=2"));
     }
 
     #[test]
