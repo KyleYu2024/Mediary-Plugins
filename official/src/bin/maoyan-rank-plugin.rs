@@ -110,6 +110,7 @@ struct RunReport {
     skipped_history: usize,
     skipped_existing: usize,
     failures: Vec<String>,
+    warnings: Vec<String>,
 }
 
 #[tokio::main]
@@ -134,10 +135,11 @@ async fn run() -> Result<(), String> {
     }
     let report = refresh(&context).await?;
     let notice = format!(
-        "猫眼榜单刷新完成：获取 {}，新增订阅 {}，失败 {}。",
+        "猫眼榜单刷新完成：获取 {}，新增订阅 {}，失败 {}，提示 {}。",
         report.fetched,
         report.subscribed,
-        report.failures.len()
+        report.failures.len(),
+        report.warnings.len()
     );
     println!("{}", json!({"notice": notice, "report": report}));
     Ok(())
@@ -180,8 +182,9 @@ async fn refresh(context: &PluginContext) -> Result<RunReport, String> {
         skipped_history: 0,
         skipped_existing: 0,
         failures: Vec::new(),
+        warnings: Vec::new(),
     };
-    let candidates = fetch_rankings(context).await?;
+    let candidates = fetch_rankings(context, &mut report).await?;
     report.fetched = candidates.len();
     let mut existing_subscriptions = fetch_existing_subscription_keys(context).await?;
     let mut history = load_json::<History>(&context.data_dir.join("history.json"));
@@ -244,13 +247,23 @@ async fn refresh(context: &PluginContext) -> Result<RunReport, String> {
     Ok(report)
 }
 
-async fn fetch_rankings(context: &PluginContext) -> Result<Vec<Candidate>, String> {
+async fn fetch_rankings(
+    context: &PluginContext,
+    report: &mut RunReport,
+) -> Result<Vec<Candidate>, String> {
     let mut output = Vec::new();
     let types = normalized_values(&context.settings.rank_types, default_rank_types());
     let limit = context.settings.movie_num.max(1);
 
     if types.iter().any(|kind| kind == "movie") {
-        let payload = get_json(context, &format!("{MAOYAN_BASE_URL}/dashboard-ajax/movie")).await?;
+        let payload =
+            match get_json(context, &format!("{MAOYAN_BASE_URL}/dashboard-ajax/movie")).await {
+                Ok(payload) => payload,
+                Err(error) => {
+                    report.failures.push(format!("电影票房榜单: {error}"));
+                    Value::Null
+                }
+            };
         for item in json_array(&payload, &["movieList", "list"])
             .into_iter()
             .take(limit)
@@ -274,7 +287,13 @@ async fn fetch_rankings(context: &PluginContext) -> Result<Vec<Candidate>, Strin
         let url = format!(
             "{MAOYAN_BASE_URL}/dashboard/webMaoYanHotData?seriesType=0&platform=20&date={date}&networkHot=3"
         );
-        let payload = get_json(context, &url).await?;
+        let payload = match get_json(context, &url).await {
+            Ok(payload) => payload,
+            Err(error) => {
+                report.failures.push(format!("网络电影榜单: {error}"));
+                Value::Null
+            }
+        };
         for item in json_array(&payload, &["data", "list"])
             .into_iter()
             .take(limit)
@@ -300,7 +319,34 @@ async fn fetch_rankings(context: &PluginContext) -> Result<Vec<Candidate>, Strin
             let url = format!(
                 "{MAOYAN_BASE_URL}/dashboard/webHeatData?seriesType={series_type}&platformType={platform_type}&showDate=2"
             );
-            let payload = get_json(context, &url).await?;
+            let (payload, source) = match get_json(context, &url).await {
+                Ok(payload) => (payload, rank_type),
+                Err(error) if rank_type == "web-heat" && platform == "all" => {
+                    match fetch_combined_web_heat(context).await {
+                        Ok(payload) => {
+                            report.warnings.push(
+                                "电视剧热度接口不可用，已改用猫眼公开页面的电视剧＋网剧全网综合榜"
+                                    .to_string(),
+                            );
+                            (payload, "web-heat-combined")
+                        }
+                        Err(fallback_error) => {
+                            report.failures.push(format!(
+                                "{} ({platform}): {error}; 备用综合榜: {fallback_error}",
+                                rank_source_label(rank_type)
+                            ));
+                            continue;
+                        }
+                    }
+                }
+                Err(error) => {
+                    report.failures.push(format!(
+                        "{} ({platform}): {error}",
+                        rank_source_label(rank_type)
+                    ));
+                    continue;
+                }
+            };
             for item in json_array(&payload, &["dataList", "list"])
                 .into_iter()
                 .take(platform_limit.max(1))
@@ -310,7 +356,7 @@ async fn fetch_rankings(context: &PluginContext) -> Result<Vec<Candidate>, Strin
                     output.push(candidate(
                         title,
                         "tv",
-                        rank_type,
+                        source,
                         json_text(info, "releaseInfo").unwrap_or_default(),
                         json_text(info, "platformDesc").unwrap_or_else(|| platform.to_string()),
                     ));
@@ -321,11 +367,55 @@ async fn fetch_rankings(context: &PluginContext) -> Result<Vec<Candidate>, Strin
 
     let mut deduped = HashSet::new();
     output.retain(|item| deduped.insert(format!("{}:{}", item.media_type, item.title)));
+    if output.is_empty() && !report.failures.is_empty() {
+        write_json(context.data_dir.join("last-run.json"), report)?;
+        return Err(format!("猫眼榜单获取失败: {}", report.failures.join("; ")));
+    }
     Ok(output)
 }
 
+async fn fetch_combined_web_heat(context: &PluginContext) -> Result<Value, String> {
+    let html = context
+        .client
+        .get(format!("{MAOYAN_BASE_URL}/web-heat"))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?
+        .error_for_status()
+        .map_err(|error| error.to_string())?
+        .text()
+        .await
+        .map_err(|error| error.to_string())?;
+    parse_combined_web_heat(&html)
+}
+
+fn parse_combined_web_heat(html: &str) -> Result<Value, String> {
+    let marker = Regex::new(r"\bvar\s+AppData\s*=\s*").unwrap();
+    let assignment = marker.find(html).ok_or("猫眼页面缺少 AppData 榜单数据")?;
+    // Read one JSON value, ignoring the surrounding JavaScript and unrelated page config.
+    let data = serde_json::Deserializer::from_str(&html[assignment.end()..])
+        .into_iter::<Value>()
+        .next()
+        .ok_or("猫眼页面榜单数据为空")?
+        .map_err(|error| format!("猫眼页面榜单数据无效: {error}"))?;
+    let list = data
+        .pointer("/pageData/webHeatData")
+        .and_then(Value::as_array)
+        .ok_or("猫眼页面榜单结构已变化")?;
+    if list.is_empty()
+        || !list.iter().any(|item| {
+            item.pointer("/seriesInfo/name")
+                .and_then(Value::as_str)
+                .is_some()
+        })
+    {
+        return Err("猫眼页面没有有效的综合榜单条目".to_string());
+    }
+    Ok(json!({"dataList": {"list": list}}))
+}
+
 async fn get_json(context: &PluginContext, url: &str) -> Result<Value, String> {
-    context
+    let payload: Value = context
         .client
         .get(url)
         .send()
@@ -335,7 +425,27 @@ async fn get_json(context: &PluginContext, url: &str) -> Result<Value, String> {
         .map_err(|error| error.to_string())?
         .json()
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    let list_path = if url.contains("/dashboard-ajax/movie") {
+        "/movieList/list"
+    } else if url.contains("/dashboard/webMaoYanHotData") {
+        "/data/list"
+    } else {
+        "/dataList/list"
+    };
+    validate_rank_payload(&payload, list_path)?;
+    Ok(payload)
+}
+
+fn validate_rank_payload(payload: &Value, list_path: &str) -> Result<(), String> {
+    if payload
+        .pointer(list_path)
+        .and_then(Value::as_array)
+        .is_none()
+    {
+        return Err("猫眼榜单响应缺少有效列表，接口可能不可用或结构已变化".to_string());
+    }
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -773,6 +883,7 @@ fn rank_source_label(source: &str) -> &'static str {
     match source {
         "movie" => "电影票房榜单",
         "web-heat" => "电视剧热度榜单",
+        "web-heat-combined" => "电视剧＋网剧全网综合榜",
         "web-tv" => "网剧热度榜单",
         "zongyi" => "综艺榜单",
         "web-movie" => "网络电影榜单",
@@ -874,6 +985,79 @@ fn truncate(value: &str, max_chars: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accepts_empty_rankings_but_rejects_error_responses() {
+        assert!(validate_rank_payload(&json!({"dataList":{"list":[]}}), "/dataList/list").is_ok());
+        for payload in [json!({"status":false}), json!({"dataList":{"list":null}})] {
+            assert!(validate_rank_payload(&payload, "/dataList/list").is_err());
+        }
+    }
+
+    #[test]
+    fn reads_page_json_without_tracing_html_or_script_delimiters() {
+        let html = r#"<script>var AppData = {"pageData":{"webHeatData":[{"seriesInfo":{"name":"剧名 </script> ; 特别篇","platformDesc":"腾讯视频独播"}}]}}; unrelated();</script>"#;
+        let payload = parse_combined_web_heat(html).unwrap();
+        assert_eq!(
+            payload["dataList"]["list"][0]["seriesInfo"]["name"],
+            "剧名 </script> ; 特别篇"
+        );
+    }
+
+    #[test]
+    fn rejects_challenge_pages_and_changed_or_empty_page_data() {
+        for html in [
+            "<html>403 Forbidden</html>",
+            "var AppData = {broken};",
+            r#"var AppData = {"pageData":{"webHeatData":[]}};"#,
+            r#"var AppData = {"pageData":{"webHeatData":[{}]}};"#,
+            r#"var AppData = {"pageData":{"other":[]}};"#,
+        ] {
+            assert!(parse_combined_web_heat(html).is_err(), "{html}");
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "requires live Maoyan access"]
+    async fn live_rankings_continue_after_blocked_sources() {
+        let mut settings = default_settings();
+        settings.all_enabled = true;
+        settings.all_num = 3;
+        settings.movie_num = 3;
+        let context = PluginContext {
+            api_url: String::new(),
+            token: String::new(),
+            data_dir: env::temp_dir(),
+            client: Client::builder()
+                .user_agent(USER_AGENT)
+                .timeout(Duration::from_secs(20))
+                .build()
+                .unwrap(),
+            settings,
+        };
+        let mut report = RunReport {
+            ran_at: String::new(),
+            fetched: 0,
+            considered: 0,
+            resolved: 0,
+            subscribed: 0,
+            skipped_history: 0,
+            skipped_existing: 0,
+            failures: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let candidates = fetch_rankings(&context, &mut report).await.unwrap();
+        assert!(candidates.iter().any(|item| item.source == "movie"));
+        assert!(
+            candidates
+                .iter()
+                .any(|item| item.source == "web-heat" || item.source == "web-heat-combined")
+        );
+        assert!(candidates.iter().all(|item| !item.title.is_empty()));
+        // The default selection includes web movies and separate TV/variety feeds;
+        // their failures must not discard the working movie and combined feeds.
+        assert!(candidates.len() >= 6);
+    }
 
     #[test]
     fn derives_year_from_maoyan_release_age() {
