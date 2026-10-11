@@ -306,6 +306,7 @@ Mediary 标题解析结果。
 | --- | --- |
 | `dashboard:read` | `GET /dashboard/summary`、`GET /dashboard/emby` |
 | `catalog:read` | `GET /search/tmdb`、`GET /search/tmdb/details`、`POST /tmdb/resolve`、`GET /plugin/media-cast/pending`、`GET /plugin/tmdb/credits/:media_type/:id`、`GET /plugin/tmdb/person/:id` |
+| `media-migration:write` | `POST /plugin/emby-migration/discover`、创建及查询迁移任务、导入用户与观看数据；仅 Mediary 2.9.35+ 支持 |
 | `media-cast:write` | `PUT /plugin/media-cast/:id`，写入演员资料及作品关联 |
 | `subscriptions:read` | `GET /subscriptions`、`GET /subscriptions/*` |
 | `subscriptions:write` | `POST /subscriptions`、其他非 GET `/subscriptions/*` |

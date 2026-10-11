@@ -14,6 +14,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.resolve(distArgument);
 const platforms = ['linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64'];
 const pluginIds = [
+  'emby-migration',
   '115-checkin',
   'smzdm-checkin',
   'douban-coming-notice',
@@ -27,6 +28,7 @@ const pluginIds = [
   'hdhive-trending',
 ];
 const minimumMediaryVersions = {
+  'emby-migration': '2.9.35',
   '115-checkin': '1.8.0',
   'smzdm-checkin': '1.9.4',
   'douban-coming-notice': '0.8.10',
