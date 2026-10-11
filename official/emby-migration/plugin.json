@@ -1,0 +1,114 @@
+{
+  "api_version": 1,
+  "id": "emby-migration",
+  "name": "Emby 用户迁移",
+  "version": "0.2.0",
+  "description": "单向迁移用户、媒体库访问、已看、收藏、续播、播放次数及最近播放时间；支持原密码首次登录接管和演员收藏。",
+  "action_runtime": {
+    "entrypoint": "./plugin"
+  },
+  "requested_scopes": [
+    "media-migration:write"
+  ],
+  "auto_grant_scopes": false,
+  "secret_fields": [
+    "api_key"
+  ],
+  "settings_schema": {
+    "sections": [
+      {
+        "title": "Emby 连接",
+        "alert": "填写 Emby 连接即可。迁移助手会自动识别媒体库、路径和用户，只在有冲突时需要选择。请先完成 Mediary 媒体库扫描；新用户首次登录前保持原 Emby 在线。",
+        "fields": [
+          {
+            "key": "$enabled",
+            "type": "switch",
+            "label": "启用插件",
+            "default": true
+          },
+          {
+            "key": "base_url",
+            "type": "text",
+            "label": "Emby 地址",
+            "placeholder": "http://192.168.1.2:8096",
+            "span": 2
+          },
+          {
+            "key": "api_key",
+            "type": "text",
+            "label": "Emby API Key",
+            "span": 2
+          }
+        ]
+      }
+    ]
+  },
+  "interactive_view": {
+    "title": "Emby 用户迁移",
+    "action": "manage",
+    "layout": "list",
+    "auto_run": true,
+    "trigger": {
+      "label": "迁移助手",
+      "icon": "server"
+    },
+    "submit": {
+      "label": "执行所选操作",
+      "pending_label": "处理中",
+      "icon": "play"
+    },
+    "fields": [
+      {
+        "key": "operation",
+        "type": "select",
+        "label": "操作",
+        "default": "status",
+        "options": [
+          {
+            "value": "status",
+            "label": "刷新状态"
+          },
+          {
+            "value": "preview",
+            "label": "创建迁移预览"
+          },
+          {
+            "value": "import",
+            "label": "执行迁移"
+          },
+          {
+            "value": "report",
+            "label": "保存完整报告"
+          }
+        ]
+      },
+      {
+        "key": "job_id",
+        "type": "text",
+        "label": "预览任务 ID",
+        "placeholder": "导入时必填；查询留空显示最新任务",
+        "span": 2
+      },
+      {
+        "key": "confirm",
+        "type": "switch",
+        "label": "已核对账号、媒体库及媒体匹配，确认迁移",
+        "default": false
+      },
+      {
+        "key": "allow_unmatched",
+        "type": "switch",
+        "label": "跳过未匹配媒体及演员（这些记录不会迁移）",
+        "default": false
+      },
+      {
+        "key": "replace_unchanged",
+        "type": "switch",
+        "label": "覆盖现有观看状态（仅覆盖预览后未改变的记录）",
+        "default": false
+      }
+    ],
+    "empty_result_text": "尚未创建迁移预览。",
+    "error_message": "迁移失败，请查看错误并检查 Emby 连接、主程序版本及插件权限。"
+  }
+}

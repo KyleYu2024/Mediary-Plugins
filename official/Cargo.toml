@@ -55,6 +55,10 @@ path = "src/bin/telegram-resource-plugin.rs"
 name = "hdhive-trending-plugin"
 path = "src/bin/hdhive-trending-plugin.rs"
 
+[[bin]]
+name = "emby-migration-plugin"
+path = "src/bin/emby-migration-plugin.rs"
+
 [dependencies]
 axum = "0.7"
 base64 = "0.22"
