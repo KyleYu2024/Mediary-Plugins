@@ -63,4 +63,3 @@ Mediary 官方插件源码镜像位于 `official/`，由 Mediary 主仓库的插
 ## 许可证
 
 仓库中的校验脚本和文档使用 MIT License。各插件沿用其作者声明的许可证。
-
