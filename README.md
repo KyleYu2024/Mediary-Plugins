@@ -64,4 +64,3 @@ Mediary 官方插件源码镜像位于 `official/`，由 Mediary 主仓库的插
 
 仓库中的校验脚本和文档使用 MIT License。各插件沿用其作者声明的许可证。
 
-Emby 用户迁移插件（需 Mediary 2.9.35+）支持自动识别媒体库、路径与用户、预览后事务导入及原密码首次登录接管。使用范围、特殊权限及历史明细边界见 [插件说明](official/emby-migration/README.md)。
