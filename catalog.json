@@ -118,43 +118,6 @@
       }
     },
     {
-      "id": "emby-migration",
-      "name": "Emby 用户迁移",
-      "version": "0.2.0",
-      "description": "单向迁移用户、媒体库访问、已看、收藏、续播、播放次数及最近播放时间；支持原密码首次登录接管和演员收藏。",
-      "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.42/official/emby-migration",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.42/official",
-      "license": "MIT",
-      "api_version": 1,
-      "min_mediary_version": "2.9.35",
-      "permissions": [
-        "media-migration:write"
-      ],
-      "artifacts": {
-        "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.42/emby-migration-v0.2.0-linux-amd64.tar.gz",
-          "sha256": "017d9f325dccf32a7f95030dd7fa7a2b1feae91cd757eeff120d99824ca994be",
-          "size": 2145462
-        },
-        "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.42/emby-migration-v0.2.0-linux-arm64.tar.gz",
-          "sha256": "16986f46e353ad3aeb066c675e640dcfe5d59ba1c0bb73548a1604aa342fbbf8",
-          "size": 2155658
-        },
-        "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.42/emby-migration-v0.2.0-darwin-amd64.tar.gz",
-          "sha256": "e4fef915ebdd6b003feeee97bacf92584aad18fa8499e8192f90b3d82156f3f5",
-          "size": 2033657
-        },
-        "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.42/emby-migration-v0.2.0-darwin-arm64.tar.gz",
-          "sha256": "5f3173c77dc88081df65cf2148e6c6f33916a7076c65a4ca9b9b6cec3699c557",
-          "size": 1960314
-        }
-      }
-    },
-    {
       "id": "hdhive-trending",
       "name": "影巢趋势",
       "version": "0.1.1",
