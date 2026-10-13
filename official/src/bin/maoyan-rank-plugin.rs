@@ -11,6 +11,9 @@ use std::{
     time::Duration,
 };
 
+#[path = "../platform_ranks.rs"]
+mod platform_ranks;
+
 const MAOYAN_BASE_URL: &str = "https://piaofang.maoyan.com";
 const USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/121 Safari/537.36";
@@ -153,6 +156,8 @@ struct Candidate {
     release_info: String,
     platform: String,
     year: Option<i32>,
+    source_rank: Option<usize>,
+    source_heat: Option<f64>,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -188,6 +193,10 @@ struct SubscriptionRecord {
     platform: String,
     year: Option<i32>,
     subscribed_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    source_rank: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    source_heat: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -445,6 +454,23 @@ async fn fetch_rankings(
                     }
                 }
                 Err(error) => {
+                    if rank_type == "web-heat" && platform_ranks::source(platform).is_some() {
+                        match fetch_platform_candidates(context, platform, platform_limit).await {
+                            Ok(candidates) => {
+                                let (_, label, _) = platform_ranks::source(platform).unwrap();
+                                report.warnings.push(format!("猫眼 {platform} 电视剧榜单不可用（{error}），改用{label}，读取 {} 条；平台榜包含电视剧和网剧", candidates.len()));
+                                output.extend(candidates);
+                                continue;
+                            }
+                            Err(fallback_error) => {
+                                report.failures.push(format!(
+                                    "{} ({platform}): {error}; 平台公开榜单: {fallback_error}",
+                                    rank_source_label(rank_type)
+                                ));
+                                continue;
+                            }
+                        }
+                    }
                     report.failures.push(format!(
                         "{} ({platform}): {error}",
                         rank_source_label(rank_type)
@@ -477,6 +503,27 @@ async fn fetch_rankings(
         return Err(format!("猫眼榜单获取失败: {}", report.failures.join("; ")));
     }
     Ok(output)
+}
+
+async fn fetch_platform_candidates(
+    context: &PluginContext,
+    platform: &str,
+    limit: usize,
+) -> Result<Vec<Candidate>, String> {
+    let (source, _, name) = platform_ranks::source(platform).ok_or("该平台未接入公开榜单")?;
+    let items = platform_ranks::fetch(&context.client, platform).await?;
+    Ok(items
+        .into_iter()
+        .filter(|item| item.rank <= limit.max(1))
+        .map(|item| {
+            let mut candidate =
+                candidate(item.title, "tv", source, String::new(), name.to_string());
+            candidate.year = item.year;
+            candidate.source_rank = Some(item.rank);
+            candidate.source_heat = item.heat;
+            candidate
+        })
+        .collect())
 }
 
 async fn fetch_combined_web_heat(context: &PluginContext) -> Result<Value, String> {
@@ -956,6 +1003,8 @@ fn candidate(
         year: year_from_release_info(&release_info),
         release_info,
         platform,
+        source_rank: None,
+        source_heat: None,
     }
 }
 
@@ -1036,6 +1085,8 @@ fn subscription_record(candidate: &Candidate, resolved: &ResolvedMedia) -> Subsc
         },
         year: resolved.year.or(candidate.year),
         subscribed_at: Local::now().to_rfc3339(),
+        source_rank: candidate.source_rank,
+        source_heat: candidate.source_heat,
     }
 }
 
@@ -1064,6 +1115,9 @@ fn rank_source_label(source: &str) -> &'static str {
         "web-tv" => "网剧热度榜单",
         "zongyi" => "综艺榜单",
         "web-movie" => "网络电影榜单",
+        "tencent-tv-search" => "腾讯电视剧热搜榜",
+        "iqiyi-tv-hot" => "爱奇艺电视剧热播榜",
+        "mango-tv-popular" => "芒果电视剧热门榜",
         _ => "猫眼榜单",
     }
 }
@@ -1162,6 +1216,65 @@ fn truncate(value: &str, max_chars: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    #[ignore = "reads live platform charts without creating subscriptions"]
+    async fn live_platform_fallbacks_supply_tv_candidates() {
+        let mut settings = default_settings();
+        settings.rank_types = vec!["web-heat".into()];
+        settings.tx_enabled = true;
+        settings.tx_num = 3;
+        settings.iqy_enabled = true;
+        settings.iqy_num = 3;
+        settings.mg_enabled = true;
+        settings.mg_num = 3;
+        let context = PluginContext {
+            api_url: String::new(),
+            token: String::new(),
+            data_dir: env::temp_dir(),
+            client: Client::builder()
+                .user_agent(USER_AGENT)
+                .timeout(Duration::from_secs(20))
+                .build()
+                .unwrap(),
+            settings,
+        };
+        let mut report = RunReport {
+            ran_at: String::new(),
+            fetched: 0,
+            considered: 0,
+            resolved: 0,
+            subscribed: 0,
+            skipped_history: 0,
+            skipped_existing: 0,
+            failures: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let candidates = fetch_rankings(&context, &mut report).await.unwrap();
+        eprintln!(
+            "平台只读取数验证: {}",
+            json!({"candidates": candidates,"warnings":report.warnings,"failures":report.failures})
+        );
+        assert!(report.failures.is_empty(), "{:?}", report.failures);
+        for source in ["tencent-tv-search", "iqiyi-tv-hot", "mango-tv-popular"] {
+            assert!(
+                candidates.iter().any(|c| c.source == source),
+                "缺少 {source}"
+            );
+        }
+        assert!(
+            candidates
+                .iter()
+                .all(|c| c.media_type == "tv" && c.source_rank.is_some_and(|r| r <= 3))
+        );
+    }
+
+    #[test]
+    fn old_subscription_records_keep_loading_after_rank_metadata_is_added() {
+        let record: SubscriptionRecord = serde_json::from_value(json!({"title":"旧订阅","tmdb_id":"123","media_type":"剧集/综艺","source":"电视剧热度榜单","platform":"猫眼","year":2026,"subscribed_at":"2026-10-13T09:00:00+08:00"})).unwrap();
+        assert!(record.source_rank.is_none());
+        assert!(record.source_heat.is_none());
+    }
 
     #[test]
     fn accepts_empty_rankings_but_rejects_error_responses() {
