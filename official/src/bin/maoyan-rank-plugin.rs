@@ -1,6 +1,7 @@
-use chrono::{Datelike, Duration as ChronoDuration, Local};
+use chrono::{Datelike, Duration as ChronoDuration, FixedOffset, Local, Utc};
 use regex::Regex;
 use reqwest::Client;
+use reqwest::header::{COOKIE, HeaderMap, HeaderValue, REFERER, SET_COOKIE};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -15,6 +16,95 @@ const USER_AGENT: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/121 Safari/537.36";
 const MAX_HISTORY_ITEMS: usize = 5_000;
 const DEFAULT_TV_SEASON: i32 = 1;
+const MAOYAN_HEAT_PAGE: &str = "https://piaofang.maoyan.com/dashboard/web-heat";
+
+fn heat_rank_url(series_type: i32, platform: &str, date: &str) -> String {
+    let mut url = format!(
+        "{MAOYAN_BASE_URL}/i/api/encrypt/dashboard/webHeatData?seriesType={series_type}&showDate={date}"
+    );
+    // The current website omits platformType for the all-platform chart.
+    if platform != "all" {
+        url.push_str(&format!("&platformType={}", platform_type(platform)));
+    }
+    url
+}
+
+fn web_movie_rank_url(date: &str) -> String {
+    format!(
+        "{MAOYAN_BASE_URL}/i/api/encrypt/dashboard/webHeatNetData?showDate={date}&platformType=3&dateType=0&rankType=0"
+    )
+}
+
+fn beijing_rank_date(now: chrono::DateTime<Utc>) -> String {
+    now.with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap())
+        .format("%Y%m%d")
+        .to_string()
+}
+
+// Only anonymous cookies supplied by Maoyan are used, in memory for this refresh.
+async fn rank_session_headers(context: &PluginContext) -> Result<HeaderMap, String> {
+    let response = context
+        .client
+        .get(MAOYAN_HEAT_PAGE)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+    if response.url().host_str() != Some("piaofang.maoyan.com") {
+        return Err("猫眼官网页面重定向到其他域名".into());
+    }
+    let cookies = response
+        .headers()
+        .get_all(SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .filter_map(|cookie| cookie.split(';').next())
+        .filter(|cookie| cookie.contains('='))
+        .collect::<Vec<_>>()
+        .join("; ");
+    let html = response.text().await.map_err(|e| e.to_string())?;
+    let mut headers = parse_rank_page_headers(&html)?;
+    if !cookies.is_empty() {
+        headers.insert(
+            COOKIE,
+            HeaderValue::from_str(&cookies).map_err(|_| "猫眼匿名会话格式无效")?,
+        );
+    }
+    Ok(headers)
+}
+
+fn parse_rank_page_headers(html: &str) -> Result<HeaderMap, String> {
+    let mut headers = HeaderMap::new();
+    headers.insert(REFERER, HeaderValue::from_static(MAOYAN_HEAT_PAGE));
+    let tags = Regex::new(r"(?is)<meta\b[^>]*>").unwrap();
+    let attributes = Regex::new(r#"(?i)\b(name|content)\s*=\s*(?:"([^"]*)"|'([^']*)')"#).unwrap();
+    for tag in tags.find_iter(html) {
+        let mut name = None;
+        let mut content = None;
+        for capture in attributes.captures_iter(tag.as_str()) {
+            let value = capture.get(2).or_else(|| capture.get(3)).unwrap().as_str();
+            match capture[1].to_ascii_lowercase().as_str() {
+                "name" => name = Some(value),
+                "content" => content = Some(value),
+                _ => {}
+            }
+        }
+        let key = match name {
+            Some("csrf") => "uid",
+            Some("deviceId") => "uuid",
+            Some("channelId") => "channelid",
+            _ => continue,
+        };
+        if let Some(value) = content.filter(|v| !v.is_empty()) {
+            headers.insert(
+                key,
+                HeaderValue::from_str(value).map_err(|_| "猫眼页面请求头格式无效")?,
+            );
+        }
+    }
+    Ok(headers)
+}
 
 #[derive(Clone, Deserialize)]
 struct Settings {
@@ -254,6 +344,25 @@ async fn fetch_rankings(
     let mut output = Vec::new();
     let types = normalized_values(&context.settings.rank_types, default_rank_types());
     let limit = context.settings.movie_num.max(1);
+    let date = beijing_rank_date(Utc::now());
+    let needs_heat = types.iter().any(|kind| kind == "web-movie")
+        || (!context.settings.platform_limits().is_empty()
+            && types
+                .iter()
+                .any(|kind| matches!(kind.as_str(), "web-heat" | "web-tv" | "zongyi")));
+    let session_headers = if needs_heat {
+        match rank_session_headers(context).await {
+            Ok(headers) => headers,
+            Err(error) => {
+                report
+                    .warnings
+                    .push(format!("读取猫眼匿名网页会话失败，继续请求榜单: {error}"));
+                HeaderMap::new()
+            }
+        }
+    } else {
+        HeaderMap::new()
+    };
 
     if types.iter().any(|kind| kind == "movie") {
         let payload =
@@ -283,22 +392,20 @@ async fn fetch_rankings(
     }
 
     if types.iter().any(|kind| kind == "web-movie") {
-        let date = Local::now().format("%Y-%m-%d");
-        let url = format!(
-            "{MAOYAN_BASE_URL}/dashboard/webMaoYanHotData?seriesType=0&platform=20&date={date}&networkHot=3"
-        );
-        let payload = match get_json(context, &url).await {
+        let url = web_movie_rank_url(&date);
+        let payload = match get_heat_json(context, &url, &session_headers, report).await {
             Ok(payload) => payload,
             Err(error) => {
                 report.failures.push(format!("网络电影榜单: {error}"));
                 Value::Null
             }
         };
-        for item in json_array(&payload, &["data", "list"])
+        for item in json_array(&payload, &["dataList", "list"])
             .into_iter()
             .take(limit)
         {
-            if let Some(title) = json_text(&item, "name") {
+            if let Some(title) = json_text(&item, "movieName").or_else(|| json_text(&item, "name"))
+            {
                 output.push(candidate(
                     title,
                     "movie",
@@ -315,18 +422,16 @@ async fn fetch_rankings(
             continue;
         }
         for (platform, platform_limit) in context.settings.platform_limits() {
-            let platform_type = platform_type(platform);
-            let url = format!(
-                "{MAOYAN_BASE_URL}/dashboard/webHeatData?seriesType={series_type}&platformType={platform_type}&showDate=2"
-            );
-            let (payload, source) = match get_json(context, &url).await {
+            let url = heat_rank_url(series_type, platform, &date);
+            let (payload, source) = match get_heat_json(context, &url, &session_headers, report)
+                .await
+            {
                 Ok(payload) => (payload, rank_type),
                 Err(error) if rank_type == "web-heat" && platform == "all" => {
                     match fetch_combined_web_heat(context).await {
                         Ok(payload) => {
                             report.warnings.push(
-                                "电视剧热度接口不可用，已改用猫眼公开页面的电视剧＋网剧全网综合榜"
-                                    .to_string(),
+                                format!("新电视剧热度接口不可用（{error}），已改用猫眼公开页面的电视剧＋网剧全网综合榜"),
                             );
                             (payload, "web-heat-combined")
                         }
@@ -415,21 +520,17 @@ fn parse_combined_web_heat(html: &str) -> Result<Value, String> {
 }
 
 async fn get_json(context: &PluginContext, url: &str) -> Result<Value, String> {
-    let payload: Value = context
-        .client
-        .get(url)
-        .send()
-        .await
-        .map_err(|error| error.to_string())?
-        .error_for_status()
-        .map_err(|error| error.to_string())?
-        .json()
-        .await
-        .map_err(|error| error.to_string())?;
+    get_json_with_headers(context, url, &HeaderMap::new()).await
+}
+
+async fn get_json_with_headers(
+    context: &PluginContext,
+    url: &str,
+    headers: &HeaderMap,
+) -> Result<Value, String> {
+    let payload = request_json(context, url, headers).await?;
     let list_path = if url.contains("/dashboard-ajax/movie") {
         "/movieList/list"
-    } else if url.contains("/dashboard/webMaoYanHotData") {
-        "/data/list"
     } else {
         "/dataList/list"
     };
@@ -437,7 +538,83 @@ async fn get_json(context: &PluginContext, url: &str) -> Result<Value, String> {
     Ok(payload)
 }
 
+async fn request_json(
+    context: &PluginContext,
+    url: &str,
+    headers: &HeaderMap,
+) -> Result<Value, String> {
+    context
+        .client
+        .get(url)
+        .headers(headers.clone())
+        .send()
+        .await
+        .map_err(|error| error.to_string())?
+        .error_for_status()
+        .map_err(|error| error.to_string())?
+        .json()
+        .await
+        .map_err(|error| error.to_string())
+}
+
+async fn get_heat_json(
+    context: &PluginContext,
+    url: &str,
+    headers: &HeaderMap,
+    report: &mut RunReport,
+) -> Result<Value, String> {
+    let payload = request_json(context, url, headers).await?;
+    // Web movies may publish yesterday's daily chart while today's chart is pending.
+    if url.contains("/webHeatNetData")
+        && (payload.get("status") == Some(&Value::Bool(false))
+            || json_array(&payload, &["dataList", "list"]).is_empty())
+    {
+        if let Some(latest) = latest_web_movie_date(&payload) {
+            let mut retry = reqwest::Url::parse(url).map_err(|e| e.to_string())?;
+            let pairs: Vec<(String, String)> = retry
+                .query_pairs()
+                .map(|(k, v)| {
+                    let value = if k == "showDate" {
+                        latest.clone()
+                    } else {
+                        v.into_owned()
+                    };
+                    (k.into_owned(), value)
+                })
+                .collect();
+            let requested = retry
+                .query_pairs()
+                .find(|(k, _)| k == "showDate")
+                .map(|(_, v)| v.into_owned());
+            // Never substitute a future chart or loop through dates looking for data.
+            if requested
+                .as_deref()
+                .is_some_and(|date| latest.as_str() < date)
+            {
+                retry.query_pairs_mut().clear().extend_pairs(pairs);
+                report.warnings.push(format!(
+                    "网络电影当日榜单尚未发布，尝试最新可用日期 {latest}"
+                ));
+                return get_json_with_headers(context, retry.as_str(), headers).await;
+            }
+        }
+    }
+    validate_rank_payload(&payload, "/dataList/list")?;
+    Ok(payload)
+}
+
+fn latest_web_movie_date(payload: &Value) -> Option<String> {
+    let raw = payload.pointer("/calendar/selectMaxDate")?.as_str()?;
+    let date = chrono::NaiveDate::parse_from_str(raw, "%Y-%m-%d")
+        .or_else(|_| chrono::NaiveDate::parse_from_str(raw, "%Y%m%d"))
+        .ok()?;
+    Some(date.format("%Y%m%d").to_string())
+}
+
 fn validate_rank_payload(payload: &Value, list_path: &str) -> Result<(), String> {
+    if payload.get("status") == Some(&Value::Bool(false)) {
+        return Err("猫眼接口返回失败状态，可能需要网页脚本校验".into());
+    }
     if payload
         .pointer(list_path)
         .and_then(Value::as_array)
@@ -1047,6 +1224,14 @@ mod tests {
             warnings: Vec::new(),
         };
         let candidates = fetch_rankings(&context, &mut report).await.unwrap();
+        eprintln!(
+            "猫眼只读取数验证: {}",
+            json!({
+                "candidates": candidates.iter().map(|item| json!({"title":item.title,"source":item.source})).collect::<Vec<_>>(),
+                "warnings": report.warnings,
+                "failures": report.failures,
+            })
+        );
         assert!(candidates.iter().any(|item| item.source == "movie"));
         assert!(
             candidates
@@ -1190,5 +1375,135 @@ mod tests {
 
         assert_eq!(tmdb_season_episode_count(&missing, 1), None);
         assert_eq!(tmdb_season_episode_count(&zero, 1), None);
+    }
+    #[test]
+    fn heat_urls_follow_current_site_and_platform_parameters() {
+        let all = heat_rank_url(0, "all", "20261013");
+        assert_eq!(
+            all,
+            "https://piaofang.maoyan.com/i/api/encrypt/dashboard/webHeatData?seriesType=0&showDate=20261013"
+        );
+        for (platform, code) in [
+            ("tencent", "3"),
+            ("iqiyi", "2"),
+            ("mango", "7"),
+            ("youku", "1"),
+        ] {
+            assert!(
+                heat_rank_url(1, platform, "20261013").ends_with(&format!("&platformType={code}"))
+            );
+        }
+        assert!(
+            web_movie_rank_url("20261013")
+                .contains("/webHeatNetData?showDate=20261013&platformType=3&dateType=0&rankType=0")
+        );
+    }
+
+    #[test]
+    fn rank_date_uses_beijing_even_when_host_is_utc() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-10-12T16:01:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        assert_eq!(beijing_rank_date(now), "20261013");
+    }
+
+    #[test]
+    fn page_headers_handle_reordered_and_missing_meta_attributes() {
+        let headers = parse_rank_page_headers(r#"<meta content='user-id' name='csrf'><META name="deviceId" content="device-id"><meta name='channelId' content=''><meta name='other' content='ignored'>"#).unwrap();
+        assert_eq!(headers["uid"], "user-id");
+        assert_eq!(headers["uuid"], "device-id");
+        assert_eq!(headers[REFERER], MAOYAN_HEAT_PAGE);
+        assert!(!headers.contains_key("channelid"));
+        assert!(!headers.contains_key("other"));
+        assert!(parse_rank_page_headers("<meta name='csrf' content='bad\nvalue'>").is_err());
+    }
+
+    #[test]
+    fn pending_web_movie_dates_are_validated() {
+        assert_eq!(
+            latest_web_movie_date(&json!({"calendar":{"selectMaxDate":"2026-10-12"}})),
+            Some("20261012".into())
+        );
+        assert!(
+            latest_web_movie_date(&json!({"calendar":{"selectMaxDate":"2026-02-30"}})).is_none()
+        );
+        assert!(
+            validate_rank_payload(
+                &json!({"status":false,"dataList":{"list":[]}}),
+                "/dataList/list"
+            )
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn pending_web_movie_chart_retries_announced_date_before_validating_list() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let server = std::thread::spawn(move || {
+            let mut requests = Vec::new();
+            let replies = [
+                json!({"status":false,"calendar":{"selectMaxDate":"2026-10-12"}}),
+                json!({"status":true,"dataList":{"list":[{"movieName":"测试电影"}]}}),
+            ];
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while requests.len() < replies.len() && std::time::Instant::now() < deadline {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    std::thread::sleep(Duration::from_millis(20));
+                    continue;
+                };
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(2)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                let mut buffer = [0; 1024];
+                while !bytes.windows(4).any(|part| part == b"\r\n\r\n") {
+                    let read = stream.read(&mut buffer).unwrap();
+                    if read == 0 {
+                        break;
+                    }
+                    bytes.extend_from_slice(&buffer[..read]);
+                }
+                let body = replies[requests.len()].to_string();
+                requests.push(String::from_utf8(bytes).unwrap());
+                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", body.len(), body).unwrap();
+            }
+            requests
+        });
+        let context = PluginContext {
+            api_url: String::new(),
+            token: String::new(),
+            data_dir: env::temp_dir(),
+            client: Client::builder()
+                .no_proxy()
+                .timeout(Duration::from_secs(2))
+                .build()
+                .unwrap(),
+            settings: default_settings(),
+        };
+        let mut report = RunReport {
+            ran_at: String::new(),
+            fetched: 0,
+            considered: 0,
+            resolved: 0,
+            subscribed: 0,
+            skipped_history: 0,
+            skipped_existing: 0,
+            failures: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let result = get_heat_json(&context,
+            &format!("http://{address}/i/api/encrypt/dashboard/webHeatNetData?showDate=20261013&platformType=3&dateType=0&rankType=0"),
+            &HeaderMap::new(), &mut report).await;
+        let requests = server.join().unwrap();
+        assert_eq!(
+            result.unwrap()["dataList"]["list"][0]["movieName"],
+            "测试电影"
+        );
+        assert_eq!(requests.len(), 2);
+        assert!(requests[1].contains("showDate=20261012&platformType=3&dateType=0&rankType=0"));
+        assert_eq!(report.warnings.len(), 1);
     }
 }
