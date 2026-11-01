@@ -68,7 +68,7 @@ grammers-client = "=0.10.0"
 grammers-mtsender = { version = "=0.10.0", features = ["proxy"] }
 grammers-session = "=0.10.0"
 grammers-tl-types = "=0.10.0"
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "socks"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "socks", "blocking"] }
 quick-xml = { version = "0.41", features = ["serialize"] }
 percent-encoding = "2.3"
 regex = "1.11"
@@ -78,3 +78,13 @@ md-5 = "0.10"
 sha1 = "0.10"
 sha2 = "0.10"
 tokio = { version = "1.38", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync"] }
+rhai = { version = "1.23", features = ["serde", "sync"] }
+encoding_rs = "0.8"
+roxmltree = "0.20"
+scraper = "0.19"
+semver = "1.0"
+url = "2.5"
+
+[[bin]]
+name = "site-adapter-plugin"
+path = "site-adapter/src/main.rs"

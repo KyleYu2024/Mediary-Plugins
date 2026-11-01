@@ -1,0 +1,21 @@
+[package]
+name = "mediary-site-adapter"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "site-adapter-plugin"
+path = "src/main.rs"
+
+[dependencies]
+base64 = "0.22"
+fs2 = "0.4"
+encoding_rs = "0.8"
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "json", "rustls-tls", "socks"] }
+rhai = { version = "1.23", features = ["serde", "sync"] }
+roxmltree = "0.20"
+scraper = "0.19"
+semver = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+url = "2.5"

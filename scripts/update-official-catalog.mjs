@@ -25,6 +25,7 @@ const pluginIds = [
   'seerr',
   'pt-site-message',
   'hdhive-trending',
+  'site-adapter',
 ];
 const minimumMediaryVersions = {
   '115-checkin': '1.8.0',
@@ -38,6 +39,7 @@ const minimumMediaryVersions = {
   seerr: '1.9.0',
   'pt-site-message': '1.9.9',
   'hdhive-trending': '2.6.1',
+  'site-adapter': '3.1.6',
 };
 const releaseBase = `https://github.com/KyleYu2024/Mediary-Plugins/releases/download/${releaseTag}`;
 
