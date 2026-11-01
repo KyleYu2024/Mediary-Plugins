@@ -1,0 +1,37 @@
+{
+  "id": "site-adapter",
+  "name": "站点适配管理",
+  "version": "0.1.0",
+  "description": "导入、导出和运行用户自己的站点适配包，为 Mediary 提供站点资源与种子下载。安装后不附带站点规则。",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official/site-adapter",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "3.1.6",
+  "permissions": [
+    "sites:adapt"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "00ef1b35d422e1beaf60e58019acb14e8c5f4d8d792ecbb26231a9537c3f1ae6",
+      "size": 4141372
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "664cc4f24053d4171f94b61fc0b375aa7009d182273823458c6c7f11b57a34ca",
+      "size": 4289416
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "2d1beff89f59e02e1a9d39c7927184da18938dd522edbf2d6a4b4fde12a5392b",
+      "size": 3935216
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "15322011cc841b1504bb11df275e1feaaa90a6f1a6b78d94a88b012b019751bb",
+      "size": 3793223
+    }
+  }
+}
