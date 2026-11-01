@@ -23,6 +23,11 @@ jobs:
       - name: Test plugins
         run: cargo test --manifest-path official/Cargo.toml --locked
 
+      - name: Test site adapter runtime
+        run: |
+          cargo build --manifest-path official/Cargo.toml --locked --bin site-adapter-plugin
+          SITE_ADAPTER_BINARY="$PWD/official/target/debug/site-adapter-plugin" python3 official/site-adapter/tests/test_runtime.py
+
   build:
     name: Build ${{ matrix.platform }}
     needs: test
@@ -86,13 +91,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message telegram-resource hdhive-trending; do
+          for plugin_id in 115-checkin smzdm-checkin douban-coming-notice douban-wish maoyan-rank pansou tmdb-trending subscribe-reminder seerr pt-site-message telegram-resource hdhive-trending site-adapter; do
             version=$(node -p "JSON.parse(require('fs').readFileSync('official/${plugin_id}/plugin.json')).version")
             package_dir="package-${plugin_id}"
             mkdir -p "${package_dir}"
             cp "official/target/${TARGET}/release/${plugin_id}-plugin" "${package_dir}/plugin"
             cp "official/${plugin_id}/plugin.json" "${package_dir}/plugin.json"
             package_files=(plugin plugin.json)
+            if [[ "${plugin_id}" == "site-adapter" ]]; then
+              cp "official/${plugin_id}/README.md" "${package_dir}/README.md"
+              cp "official/${plugin_id}/GUIDE.md" "${package_dir}/GUIDE.md"
+              package_files+=(README.md GUIDE.md)
+            fi
             if [[ "${plugin_id}" == "douban-coming-notice" || "${plugin_id}" == "douban-wish" ]]; then
               cp "official/${plugin_id}/LICENSE" "${package_dir}/LICENSE"
               package_files+=(LICENSE)

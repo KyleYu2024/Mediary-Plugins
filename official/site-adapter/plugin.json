@@ -1,0 +1,23 @@
+{
+  "api_version": 1,
+  "id": "site-adapter",
+  "name": "站点适配管理",
+  "version": "0.1.0",
+  "description": "导入、导出和运行用户自己的站点适配包，为 Mediary 提供站点资源与种子下载。安装后不附带站点规则。",
+  "action_runtime": { "entrypoint": "./plugin" },
+  "site_adapter": { "action": "site-dispatch", "timeout_seconds": 90 },
+  "requested_scopes": ["sites:adapt"],
+  "interactive_view": {
+    "kind": "site-adapters",
+    "title": "站点适配管理",
+    "action": "list",
+    "trigger": { "label": "管理适配包", "icon": "edit" }
+  },
+  "settings_schema": {
+    "sections": [{
+      "title": "运行设置",
+      "alert": "请授予站点适配权限。适配脚本使用主程序同步的当前站点凭据；个人凭据与本机配置不随适配包导出。",
+      "fields": [{"key":"$enabled","type":"switch","label":"启用插件","default":true}]
+    }]
+  }
+}
