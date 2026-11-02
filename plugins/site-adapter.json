@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "description": "导入、导出和运行用户自己的站点适配包，为 Mediary 提供站点资源与种子下载。安装后不附带站点规则。",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official/site-adapter",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official/site-adapter",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "3.1.6",
@@ -14,24 +14,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-linux-amd64.tar.gz",
-      "sha256": "00ef1b35d422e1beaf60e58019acb14e8c5f4d8d792ecbb26231a9537c3f1ae6",
-      "size": 4141372
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/site-adapter-v0.1.0-linux-amd64.tar.gz",
+      "sha256": "447c624af1d6dcc2d6a8a9ab7825b4c2a0a4b320d5cc5e78edd79d112825e82a",
+      "size": 4141383
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-linux-arm64.tar.gz",
-      "sha256": "664cc4f24053d4171f94b61fc0b375aa7009d182273823458c6c7f11b57a34ca",
-      "size": 4289416
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/site-adapter-v0.1.0-linux-arm64.tar.gz",
+      "sha256": "409378356701f2f07fdd6ca639f3718bfc26ca56da80ff5ca24a57ccafef9398",
+      "size": 4289348
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-darwin-amd64.tar.gz",
-      "sha256": "2d1beff89f59e02e1a9d39c7927184da18938dd522edbf2d6a4b4fde12a5392b",
-      "size": 3935216
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/site-adapter-v0.1.0-darwin-amd64.tar.gz",
+      "sha256": "922fe73492e978dda282f49d41d56bbef892428063b306280e105b587395b2aa",
+      "size": 3935219
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/site-adapter-v0.1.0-darwin-arm64.tar.gz",
-      "sha256": "15322011cc841b1504bb11df275e1feaaa90a6f1a6b78d94a88b012b019751bb",
-      "size": 3793223
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/site-adapter-v0.1.0-darwin-arm64.tar.gz",
+      "sha256": "6afbcdd384de8cafb2a4098fb9d8e83ce7d0d3e9ff9672f7a502fd505ade18b0",
+      "size": 3793225
     }
   }
 }

@@ -4,8 +4,8 @@
   "version": "0.1.4",
   "description": "使用什么值得买 App 接口为单个账号执行每日签到，支持协议回退和失效通知",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official/smzdm-checkin",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.45/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official/smzdm-checkin",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "1.9.4",
@@ -15,24 +15,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/smzdm-checkin-v0.1.4-linux-amd64.tar.gz",
-      "sha256": "b310e2e2d01c14c98cbea9a6ee0ae87a79a3604e1c266ee215a9d20eb87ff788",
-      "size": 2244336
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/smzdm-checkin-v0.1.4-linux-amd64.tar.gz",
+      "sha256": "e06cff83b0489b4fa493895f1f58a68e756284497bd5e4f80ff18f8400626961",
+      "size": 2244329
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/smzdm-checkin-v0.1.4-linux-arm64.tar.gz",
-      "sha256": "f90152e0da90919d4d65fb929af87417c5f260f70fd507bd0ab3e72bc438fef5",
-      "size": 2226841
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/smzdm-checkin-v0.1.4-linux-arm64.tar.gz",
+      "sha256": "1341743f589ffc7e72c446bf0d4689bb3ca6d188b4c68506c5b68b357e58a435",
+      "size": 2226840
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/smzdm-checkin-v0.1.4-darwin-amd64.tar.gz",
-      "sha256": "ba81cd8235bec83b5f617718bdbc4d4ec41e12a82a7aa905eab2d21ce52ec832",
-      "size": 2103037
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/smzdm-checkin-v0.1.4-darwin-amd64.tar.gz",
+      "sha256": "c683776d3ebfcf6faa01eaff694b43bff89793eeb88dca57929e5aba92f4e7af",
+      "size": 2103044
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.45/smzdm-checkin-v0.1.4-darwin-arm64.tar.gz",
-      "sha256": "609c7bca856c41264ea245ac05ff8ede168e357b7753b929a5f49866298c96f9",
-      "size": 2012065
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/smzdm-checkin-v0.1.4-darwin-arm64.tar.gz",
+      "sha256": "ba71c76c5f9cb87d5f6e50d1d0ca09e380a7424160c1aa9404e31531d6dd5df7",
+      "size": 2012064
     }
   }
 }
