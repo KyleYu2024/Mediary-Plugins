@@ -13,6 +13,8 @@ use std::{
 const TMDB_BACKDROP_BASE_URL: &str = "https://image.tmdb.org/t/p/w1280";
 const MAX_HISTORY_ITEMS: usize = 100;
 const MAX_SENT_DATES: usize = 90;
+// Keep short reminders airy; reduce separators when the message gets tall.
+const MAX_SPACED_MESSAGE_LINES: usize = 20;
 
 #[derive(Clone, Deserialize)]
 struct Settings {
@@ -358,6 +360,10 @@ fn format_batch(reminders: &[ReminderItem], show_progress: bool) -> String {
                 expected
             ));
         }
+    }
+    if lines.len() > MAX_SPACED_MESSAGE_LINES {
+        lines.retain(|line| !line.is_empty());
+        lines.insert(1, String::new());
     }
     lines.join("\n")
 }
