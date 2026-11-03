@@ -428,44 +428,6 @@
           "size": 2183669
         }
       }
-    },
-    {
-      "id": "tmdb-trending",
-      "name": "TMDB 热门",
-      "version": "0.3.0",
-      "description": "按国内剧集、国外剧集、国内电影、国外电影和动漫浏览 TMDB 热门内容",
-      "author": "Mediary",
-      "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official/tmdb-trending",
-      "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.46/official",
-      "license": "MIT",
-      "api_version": 1,
-      "min_mediary_version": "0.8.1",
-      "permissions": [
-        "catalog:read",
-        "subscriptions:read"
-      ],
-      "artifacts": {
-        "linux-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/tmdb-trending-v0.3.0-linux-amd64.tar.gz",
-          "sha256": "aa0a04272aa3c91a2b441ab10564f7b98dc47b6a85294a2dc3e21ff3497048de",
-          "size": 2327227
-        },
-        "linux-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/tmdb-trending-v0.3.0-linux-arm64.tar.gz",
-          "sha256": "add4346244674a0fd58c23d75eee805e7a51ba958df9f3b5f4f491a40d26f7eb",
-          "size": 2332297
-        },
-        "darwin-amd64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/tmdb-trending-v0.3.0-darwin-amd64.tar.gz",
-          "sha256": "1e0a750993b9fc755a056c7108aa69dbac3df6cc5ae5b922e728393d93f7acb8",
-          "size": 2181140
-        },
-        "darwin-arm64": {
-          "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.46/tmdb-trending-v0.3.0-darwin-arm64.tar.gz",
-          "sha256": "c8b55537c0445f2bd973d215b734eb1ac8338794ffea627c1dbee53a4d493641",
-          "size": 2116717
-        }
-      }
     }
   ]
 }
