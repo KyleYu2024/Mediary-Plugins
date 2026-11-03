@@ -10,7 +10,7 @@ Mediary 官方插件开发者入口与公开商店索引。插件作者可以在
 | 第一次开发 Mediary 插件 | [插件开发指南](docs/PLUGIN_DEVELOPMENT.md) |
 | 查看最小可运行插件 | [示例插件](examples/sample-action/) |
 | 查看正式插件实现 | [官方插件源码](official/) |
-| 使用或编写可分享的站点适配包 | [站点适配管理指南](official/site-adapter/GUIDE.md) |
+| 使用或编写可分享的站点适配包 | 新版 Mediary 内置“站点管理 → 自定义站点”；[旧插件迁移说明](official/site-adapter/README.md) |
 | 提交新插件或版本更新 | [商店上架指南](CONTRIBUTING.md) |
 | 填写商店索引条目 | [索引条目模板](templates/plugin.json) |
 | 查看索引字段约束 | [索引 JSON Schema](schema/plugin.schema.json) |
