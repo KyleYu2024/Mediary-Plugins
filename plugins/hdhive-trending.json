@@ -1,0 +1,40 @@
+{
+  "id": "hdhive-trending",
+  "name": "影巢趋势",
+  "version": "0.1.1",
+  "description": "每 6 小时读取影巢 TG 频道的官组发布，按 Mediary 二级分类自动创建订阅",
+  "author": "Mediary",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.47/official/hdhive-trending",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.47/official",
+  "license": "MIT",
+  "api_version": 1,
+  "min_mediary_version": "2.6.1",
+  "permissions": [
+    "catalog:read",
+    "filters:read",
+    "subscriptions:read",
+    "subscriptions:write"
+  ],
+  "artifacts": {
+    "linux-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/hdhive-trending-v0.1.1-linux-amd64.tar.gz",
+      "sha256": "269e2ce77e31ecde0ad5eddeb02ba11613b55123f98b6102c6d1de46c64195cb",
+      "size": 3111560
+    },
+    "linux-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/hdhive-trending-v0.1.1-linux-arm64.tar.gz",
+      "sha256": "df323c34cc30c14aab60c1f51110e97cd0df91ea123c76bb60bfc270836a2ed8",
+      "size": 3100609
+    },
+    "darwin-amd64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/hdhive-trending-v0.1.1-darwin-amd64.tar.gz",
+      "sha256": "6a462016dae2bacfe7e4633afae2e3e19c02d2c2e98db775a849e1c1d85236ef",
+      "size": 2917957
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/hdhive-trending-v0.1.1-darwin-arm64.tar.gz",
+      "sha256": "edcc07188935d17db66a1dc91791391f875791bb3a03ab75b21d608929d701bf",
+      "size": 2785247
+    }
+  }
+}
