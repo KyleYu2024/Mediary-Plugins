@@ -13,8 +13,15 @@ use std::{
 const TMDB_BACKDROP_BASE_URL: &str = "https://image.tmdb.org/t/p/w1280";
 const MAX_HISTORY_ITEMS: usize = 100;
 const MAX_SENT_DATES: usize = 90;
-// Keep short reminders airy; reduce separators when the message gets tall.
-const MAX_SPACED_MESSAGE_LINES: usize = 20;
+// WeCom news/textcard `description` is dropped past 512 UTF-8 bytes
+// (https://developer.work.weixin.qq.com/document/path/90236). The Nov 10 card
+// was cut mid-entry at exactly that boundary.
+const WECOM_DESCRIPTION_MAX_BYTES: usize = 512;
+// Phone cards also clip by height once the backdrop is shown. 40 columns is
+// about the width of the lines that still fitted unwrapped in that card;
+// 16 visual lines stays shorter than the full-screen bubble that was clipped.
+const WECOM_CARD_COLUMNS: usize = 40;
+const WECOM_MAX_VISUAL_LINES: usize = 16;
 
 #[derive(Clone, Deserialize)]
 struct Settings {
@@ -305,67 +312,170 @@ async fn send_reminder_batches(
     today: NaiveDate,
     reminders: &[ReminderItem],
 ) -> Result<usize, String> {
-    let batch_size = context.settings.max_per_message.clamp(1, 12);
-    let total_batches = reminders.len().div_ceil(batch_size);
-    for (index, batch) in reminders.chunks(batch_size).enumerate() {
-        let suffix = (total_batches > 1).then(|| format!(" · {}/{}", index + 1, total_batches));
-        let title = format!(
-            "📺 今日追更 · {}{}",
-            friendly_date(today),
-            suffix.unwrap_or_default()
-        );
-        let content = format_batch(batch, context.settings.show_progress);
+    let now = Local::now();
+    let show_progress = context.settings.show_progress;
+    let pages = reminder_page_ranges(
+        reminders,
+        show_progress,
+        context.settings.max_per_message,
+        now,
+    );
+    let total_pages = pages.len();
+    for (index, (start, end)) in pages.into_iter().enumerate() {
+        let batch = &reminders[start..end];
+        let title = reminder_title(today, index, total_pages);
+        let content =
+            limit_wecom_description(format_page(batch, reminders.len(), show_progress, now));
         let image_url = batch.iter().find_map(reminder_image_url);
         send_notification(context, &title, &content, image_url.as_deref()).await?;
     }
-    Ok(total_batches)
+    Ok(total_pages)
 }
 
-fn format_batch(reminders: &[ReminderItem], show_progress: bool) -> String {
-    let now = Local::now();
-    let mut lines = vec![format!("今天有 {} 部订阅剧集更新", reminders.len())];
-    for reminder in reminders {
-        lines.push(String::new());
-        if let Some(value) = reminder.local_air_at {
-            let state = if value <= now {
-                "已更新"
-            } else {
-                "待播出"
-            };
-            lines.push(format!(
-                "{:02}:{:02}  {state}",
-                value.hour(),
-                value.minute()
-            ));
+fn reminder_title(today: NaiveDate, page_index: usize, page_count: usize) -> String {
+    let suffix = (page_count > 1).then(|| format!(" · {}/{}", page_index + 1, page_count));
+    format!(
+        "📺 今日追更 · {}{}",
+        friendly_date(today),
+        suffix.unwrap_or_default()
+    )
+}
+
+/// Split on `max_per_message` and again whenever the next show would push the
+/// card past the WeCom byte cap or the visual line budget. A single show is
+/// never divided; `limit_wecom_description` trims that rare oversized line.
+fn reminder_page_ranges(
+    reminders: &[ReminderItem],
+    show_progress: bool,
+    max_per_message: usize,
+    now: DateTime<Local>,
+) -> Vec<(usize, usize)> {
+    let max_per_message = max_per_message.clamp(1, 12);
+    let total = reminders.len();
+    let mut pages = Vec::new();
+    let mut start = 0;
+    while start < total {
+        let mut end = start + 1;
+        let max_end = (start + max_per_message).min(total);
+        while end < max_end {
+            let content = format_page(&reminders[start..=end], total, show_progress, now);
+            if !within_wecom_budget(&content) {
+                break;
+            }
+            end += 1;
         }
-        lines.push(format!(
-            "{}{} · {}",
-            reminder.subscription.name,
-            reminder
-                .subscription
-                .year
-                .map(|year| format!(" ({year})"))
-                .unwrap_or_default(),
-            season_episode_label(reminder)
-        ));
-        if show_progress
-            && let Some(expected) = reminder
-                .subscription
-                .expected_episodes
-                .filter(|value| *value > 0)
-        {
-            lines.push(format!(
-                "订阅进度  {}/{}",
-                reminder.subscription.collected_episodes.max(0),
-                expected
-            ));
-        }
+        pages.push((start, end));
+        start = end;
     }
-    if lines.len() > MAX_SPACED_MESSAGE_LINES {
-        lines.retain(|line| !line.is_empty());
-        lines.insert(1, String::new());
+    pages
+}
+
+fn format_page(
+    reminders: &[ReminderItem],
+    total: usize,
+    show_progress: bool,
+    now: DateTime<Local>,
+) -> String {
+    let mut lines = Vec::with_capacity(reminders.len() + 1);
+    lines.push(format!("今天有 {total} 部订阅剧集更新"));
+    for reminder in reminders {
+        lines.push(format_reminder_line(reminder, show_progress, now));
     }
     lines.join("\n")
+}
+
+fn format_reminder_line(
+    reminder: &ReminderItem,
+    show_progress: bool,
+    now: DateTime<Local>,
+) -> String {
+    let mut parts = Vec::with_capacity(3);
+    if let Some(value) = reminder.local_air_at {
+        let state = if value <= now {
+            "已更新"
+        } else {
+            "待播出"
+        };
+        parts.push(format!(
+            "{:02}:{:02}  {state}",
+            value.hour(),
+            value.minute()
+        ));
+    }
+    parts.push(format!(
+        "{}{} · {}",
+        reminder.subscription.name,
+        reminder
+            .subscription
+            .year
+            .map(|year| format!(" ({year})"))
+            .unwrap_or_default(),
+        season_episode_label(reminder)
+    ));
+    if show_progress
+        && let Some(expected) = reminder
+            .subscription
+            .expected_episodes
+            .filter(|value| *value > 0)
+    {
+        parts.push(format!(
+            "订阅进度 {}/{}",
+            reminder.subscription.collected_episodes.max(0),
+            expected
+        ));
+    }
+    parts.join(" · ")
+}
+
+fn within_wecom_budget(content: &str) -> bool {
+    content.len() <= WECOM_DESCRIPTION_MAX_BYTES
+        && visual_line_count(content) <= WECOM_MAX_VISUAL_LINES
+}
+
+fn visual_line_count(content: &str) -> usize {
+    content
+        .lines()
+        .map(|line| display_columns(line).max(1).div_ceil(WECOM_CARD_COLUMNS))
+        .sum()
+}
+
+fn display_columns(line: &str) -> usize {
+    line.chars().map(char_columns).sum()
+}
+
+fn char_columns(ch: char) -> usize {
+    let code = ch as u32;
+    if ch.is_ascii() {
+        return usize::from(!ch.is_control());
+    }
+    // Middle dots used as separators are ambiguous-width; WeCom draws them narrow.
+    if matches!(ch, '\u{00B7}' | '\u{2022}' | '\u{30FB}') {
+        return 1;
+    }
+    let wide = (0x1100..=0x115F).contains(&code)
+        || (0x2329..=0x232A).contains(&code)
+        || (0x2E80..=0xA4CF).contains(&code)
+        || (0xAC00..=0xD7A3).contains(&code)
+        || (0xF900..=0xFAFF).contains(&code)
+        || (0xFE10..=0xFE19).contains(&code)
+        || (0xFE30..=0xFE6F).contains(&code)
+        || (0xFF00..=0xFF60).contains(&code)
+        || (0xFFE0..=0xFFE6).contains(&code);
+    if wide { 2 } else { 1 }
+}
+
+fn limit_wecom_description(content: String) -> String {
+    if content.len() <= WECOM_DESCRIPTION_MAX_BYTES {
+        return content;
+    }
+    let ellipsis = "…";
+    let mut end = WECOM_DESCRIPTION_MAX_BYTES.saturating_sub(ellipsis.len());
+    while end > 0 && !content.is_char_boundary(end) {
+        end -= 1;
+    }
+    let mut trimmed = content[..end].trim_end().to_string();
+    trimmed.push_str(ellipsis);
+    trimmed
 }
 
 fn season_episode_label(reminder: &ReminderItem) -> String {
@@ -591,6 +701,7 @@ fn default_max_per_message() -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{Local, NaiveDate, TimeZone};
 
     fn subscription() -> AiringSubscription {
         AiringSubscription {
@@ -636,6 +747,53 @@ mod tests {
         assert_eq!(tmdb_image_url("relative.jpg"), None);
     }
 
+    fn named_reminder(id: i64, name: &str, with_progress: bool) -> ReminderItem {
+        let mut item = subscription();
+        item.id = id;
+        item.name = name.to_string();
+        item.year = Some(2026);
+        item.season = Some(1);
+        item.episodes = vec![id as i32 + 1];
+        item.expected_episodes = with_progress.then_some(12);
+        item.collected_episodes = 3;
+        ReminderItem {
+            subscription: item,
+            episode_numbers: vec![id as i32 + 1],
+            local_air_at: None,
+        }
+    }
+
+    #[test]
+    fn puts_time_title_episode_and_progress_on_one_line() {
+        let now = Local.with_ymd_and_hms(2026, 11, 10, 12, 0, 0).unwrap();
+        let mut aired = subscription();
+        aired.name = "晨间剧".to_string();
+        aired.collected_episodes = 1;
+        aired.expected_episodes = Some(8);
+        let reminders = [
+            ReminderItem {
+                subscription: subscription(),
+                episode_numbers: vec![9],
+                local_air_at: Some(Local.with_ymd_and_hms(2026, 11, 10, 18, 0, 0).unwrap()),
+            },
+            ReminderItem {
+                subscription: aired,
+                episode_numbers: vec![3],
+                local_air_at: Some(Local.with_ymd_and_hms(2026, 11, 10, 9, 30, 0).unwrap()),
+            },
+        ];
+        let content = format_page(&reminders, reminders.len(), true, now);
+        let lines: Vec<_> = content.lines().collect();
+        assert_eq!(
+            lines,
+            [
+                "今天有 2 部订阅剧集更新",
+                "18:00  待播出 · 测试剧集 (2026) · S01E09 · 订阅进度 8/12",
+                "09:30  已更新 · 晨间剧 (2026) · S01E03 · 订阅进度 1/8",
+            ]
+        );
+    }
+
     #[test]
     fn omits_redundant_date_label_without_exact_airtime() {
         let reminder = ReminderItem {
@@ -643,10 +801,127 @@ mod tests {
             episode_numbers: vec![9, 10],
             local_air_at: None,
         };
-        let content = format_batch(&[reminder], true);
+        let content = format_page(&[reminder], 1, true, Local::now());
         assert!(!content.contains("今日"));
         assert!(!content.contains("更新日"));
         assert!(content.contains("测试剧集 (2026) · S01E09-10"));
+        assert_eq!(content.lines().count(), 2);
+        assert!(content.lines().nth(1).unwrap().contains("订阅进度 8/12"));
+    }
+
+    #[test]
+    fn hides_progress_when_disabled() {
+        let reminder = ReminderItem {
+            subscription: subscription(),
+            episode_numbers: vec![9],
+            local_air_at: None,
+        };
+        let content = format_page(std::slice::from_ref(&reminder), 1, false, Local::now());
+        assert_eq!(content, "今天有 1 部订阅剧集更新\n测试剧集 (2026) · S01E09");
+    }
+
+    #[test]
+    fn intro_uses_the_day_total_on_every_page() {
+        let now = Local::now();
+        let reminders: Vec<_> = (0..3)
+            .map(|id| named_reminder(id, &"剧".repeat(80), true))
+            .collect();
+        let pages = reminder_page_ranges(&reminders, true, 12, now);
+        assert!(
+            pages.len() > 1,
+            "long lines must split before max_per_message"
+        );
+        assert!(pages[0].1 - pages[0].0 < 12);
+        for (start, end) in pages {
+            let content = format_page(&reminders[start..end], reminders.len(), true, now);
+            assert!(
+                within_wecom_budget(&content),
+                "bytes {} lines {} content {content}",
+                content.len(),
+                visual_line_count(&content)
+            );
+            assert!(content.starts_with("今天有 3 部订阅剧集更新"));
+            assert!(!content.contains("今天有 1 部"));
+            assert!(!content.contains("今天有 2 部"));
+        }
+    }
+
+    #[test]
+    fn respects_max_per_message_when_the_card_still_fits() {
+        let now = Local::now();
+        let reminders: Vec<_> = (0..5).map(|id| named_reminder(id, "剧", true)).collect();
+        assert_eq!(
+            reminder_page_ranges(&reminders, true, 2, now),
+            vec![(0, 2), (2, 4), (4, 5)]
+        );
+        assert_eq!(
+            reminder_page_ranges(&reminders, true, 12, now),
+            vec![(0, 5)]
+        );
+        assert_eq!(
+            reminder_page_ranges(&reminders, true, 0, now).len(),
+            reminders.len()
+        );
+    }
+
+    #[test]
+    fn splits_on_visual_line_budget_while_bytes_still_fit() {
+        let now = Local::now();
+        let reminders: Vec<_> = (0..8)
+            .map(|id| named_reminder(id, &"A".repeat(36), false))
+            .collect();
+        let whole = format_page(&reminders, reminders.len(), false, now);
+        assert!(
+            whole.len() <= WECOM_DESCRIPTION_MAX_BYTES,
+            "fixture must stay under the byte cap, got {}",
+            whole.len()
+        );
+        assert!(
+            visual_line_count(&whole) > WECOM_MAX_VISUAL_LINES,
+            "fixture must exceed the line budget, got {}",
+            visual_line_count(&whole)
+        );
+        let pages = reminder_page_ranges(&reminders, false, 12, now);
+        assert!(pages.len() > 1);
+        assert!(
+            pages
+                .iter()
+                .all(|(start, end)| end - start < reminders.len())
+        );
+        for (start, end) in pages {
+            let content = format_page(&reminders[start..end], reminders.len(), false, now);
+            assert!(within_wecom_budget(&content), "{content}");
+            assert!(content.starts_with("今天有 8 部订阅剧集更新"));
+        }
+    }
+
+    #[test]
+    fn trims_a_single_oversized_show_to_the_wecom_byte_cap() {
+        let now = Local::now();
+        let reminders = vec![named_reminder(1, &"剧".repeat(200), true)];
+        assert_eq!(
+            reminder_page_ranges(&reminders, true, 12, now),
+            vec![(0, 1)]
+        );
+        let raw = format_page(&reminders, 1, true, now);
+        assert!(raw.len() > WECOM_DESCRIPTION_MAX_BYTES);
+        let limited = limit_wecom_description(raw);
+        assert!(limited.len() <= WECOM_DESCRIPTION_MAX_BYTES);
+        assert!(limited.ends_with('…'));
+    }
+
+    #[test]
+    fn titles_carry_a_page_suffix_only_when_split() {
+        let today = NaiveDate::from_ymd_opt(2026, 11, 10).unwrap();
+        assert_eq!(reminder_title(today, 0, 1), "📺 今日追更 · 11月10日 周二");
+        assert_eq!(
+            reminder_title(today, 0, 2),
+            "📺 今日追更 · 11月10日 周二 · 1/2"
+        );
+        assert_eq!(
+            reminder_title(today, 1, 2),
+            "📺 今日追更 · 11月10日 周二 · 2/2"
+        );
     }
 
     #[test]
