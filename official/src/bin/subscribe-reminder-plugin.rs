@@ -753,9 +753,68 @@ mod tests {
             .collect()
     }
 
-    fn rendered_pages(reminders: &[ReminderItem], now: DateTime<Local>) -> Vec<(String, String)> {
+    /// Real shows first, then other common titles of similar length. Counts past
+    /// the catalog repeat from the start.
+    const PREVIEW_SHOWS: &'static [(&'static str, i32, i32, &'static [i32])] = &[
+        ("凡人修仙传", 2020, 1, &[199]),
+        ("百日谎言", 2026, 1, &[9]),
+        ("光阴之外", 2025, 1, &[47]),
+        ("尚公主", 2026, 1, &[30, 31]),
+        ("折月亮", 2026, 1, &[7, 8]),
+        ("择日飞升", 2026, 1, &[19]),
+        ("斗破苍穹", 2017, 5, &[218]),
+        ("走马上任", 2026, 1, &[14, 15]),
+        ("庆余年", 2019, 2, &[21]),
+        ("仙逆", 2023, 1, &[64]),
+        ("遮天", 2023, 1, &[52]),
+        ("完美世界", 2021, 1, &[208]),
+        ("斗罗大陆", 2018, 1, &[221]),
+        ("吞噬星空", 2020, 1, &[133]),
+        ("一念永恒", 2020, 3, &[96]),
+        ("苍兰诀", 2022, 1, &[36]),
+        ("莲花楼", 2023, 1, &[40]),
+        ("狂飙", 2023, 1, &[39]),
+        ("繁花", 2024, 1, &[30]),
+        ("三体", 2023, 1, &[30]),
+    ];
+
+    /// `show_progress` is off. Every 4th show has an air time; the rest are one line.
+    fn realistic_reminders(count: usize) -> Vec<ReminderItem> {
+        (0..count)
+            .map(|index| {
+                let (name, year, season, episodes) = PREVIEW_SHOWS[index % PREVIEW_SHOWS.len()];
+                let mut item = subscription();
+                item.id = (index as i64) + 1;
+                item.name = name.to_string();
+                item.year = Some(year);
+                item.season = Some(season);
+                item.episodes = episodes.to_vec();
+                item.expected_episodes = None;
+                item.collected_episodes = 0;
+                item.air_at = None;
+                let local_air_at = (index % 4 == 0).then(|| {
+                    let slot = (index / 4) as u32;
+                    let minute = 15 + (slot % 4) * 10;
+                    let hour = if slot % 2 == 0 { 9 } else { 20 };
+                    Local
+                        .with_ymd_and_hms(2026, 11, 10, hour, minute, 0)
+                        .unwrap()
+                });
+                ReminderItem {
+                    subscription: item,
+                    episode_numbers: episodes.to_vec(),
+                    local_air_at,
+                }
+            })
+            .collect()
+    }
+
+    fn rendered_pages(
+        reminders: &[ReminderItem],
+        show_progress: bool,
+        now: DateTime<Local>,
+    ) -> Vec<(String, String, usize)> {
         let today = preview_day();
-        let show_progress = true;
         let ranges = reminder_page_ranges(reminders, show_progress, now);
         let page_count = ranges.len();
         ranges
@@ -769,7 +828,7 @@ mod tests {
                     show_progress,
                     now,
                 ));
-                (title, content)
+                (title, content, end - start)
             })
             .collect()
     }
@@ -942,6 +1001,56 @@ mod tests {
             .replace('>', "&gt;")
     }
 
+    #[test]
+    fn realistic_preview_hides_progress_and_times_about_a_quarter() {
+        let now = preview_now();
+        let reminders = realistic_reminders(30);
+        assert_eq!(
+            format_reminder_line(&reminders[1], false, now),
+            "百日谎言 (2026) · S01E09"
+        );
+        assert_eq!(
+            format_reminder_line(&reminders[3], false, now),
+            "尚公主 (2026) · S01E30-31"
+        );
+        assert_eq!(
+            format_reminder_line(&reminders[6], false, now),
+            "斗破苍穹 (2017) · S05E218"
+        );
+        assert_eq!(
+            format_reminder_line(&reminders[7], false, now),
+            "走马上任 (2026) · S01E14-15"
+        );
+        let timed = reminders
+            .iter()
+            .filter(|reminder| reminder.local_air_at.is_some())
+            .count();
+        assert_eq!(timed, 8);
+        for count in [10usize, 20, 30] {
+            let reminders = realistic_reminders(count);
+            let pages = rendered_pages(&reminders, false, now);
+            let mut covered = 0;
+            for (title, content, items) in &pages {
+                assert!(content.len() <= WECOM_DESCRIPTION_MAX_BYTES, "{title}");
+                assert!(!content.contains("订阅进度"));
+                assert!(content.starts_with(&format!("今天有 {count} 部订阅剧集更新")));
+                covered += items;
+            }
+            assert_eq!(covered, count);
+            if pages.len() == 1 {
+                assert!(!title_has_page_suffix(&pages[0].0));
+            }
+        }
+        let first = format_reminder_line(&reminders[0], false, now);
+        assert!(first.starts_with("09:15  已更新\n凡人修仙传 (2020) · S01E199"));
+        let fifth = format_reminder_line(&reminders[4], false, now);
+        assert!(fifth.starts_with("20:25  待播出\n折月亮 (2026) · S01E07-08"));
+    }
+
+    fn title_has_page_suffix(title: &str) -> bool {
+        title.contains(" · 1/")
+    }
+
     /// Writes the 10/20/30 previews from the real formatters. Ignored in CI.
     #[test]
     #[ignore = "writes /opt/cursor/artifacts/wecom-preview.md and wecom-preview.html"]
@@ -950,21 +1059,21 @@ mod tests {
         let mut markdown = String::from(
             "# 订阅提醒分页预览\n\n\
              由 `reminder_page_ranges`、`format_page`、`limit_wecom_description` 和 `reminder_title` 生成。\
-             日期 2026-11-10，当前时间 12:00（本地），用于区分「已更新 / 待播出」。\
-             字节数为 description 的 UTF-8 长度。\n\n",
+             `show_progress=false`。约 1/4 条目有播出时间（12:00 前为已更新，之后为待播出），其余只有剧名一行。\
+             片名从给定剧目起循环，并补了相近长度的国产剧/动画名。\
+             日期 2026-11-10。字节数为 description 的 UTF-8 长度。\n\n",
         );
         let mut groups = String::new();
         for count in [10usize, 20, 30] {
-            let reminders = long_chinese_reminders(count);
-            assert_byte_pages(&reminders);
-            let pages = rendered_pages(&reminders, now);
+            let reminders = realistic_reminders(count);
+            let pages = rendered_pages(&reminders, false, now);
             markdown.push_str(&format!("## {count} 条\n\n"));
             groups.push_str(&format!(
                 "<section id=\"group-{count}\"><h2>{count} 条</h2>\n"
             ));
-            for (index, (title, content)) in pages.iter().enumerate() {
+            for (index, (title, content, items)) in pages.iter().enumerate() {
                 markdown.push_str(&format!(
-                    "### 第 {} 页\n\n标题：`{title}`\n\n字节数：{}\n\n```text\n{content}\n```\n\n",
+                    "### 第 {} 页\n\n标题：`{title}`\n\n条数：{items}\n\n字节数：{}\n\n```text\n{content}\n```\n\n",
                     index + 1,
                     content.len()
                 ));
