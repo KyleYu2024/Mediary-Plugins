@@ -4,8 +4,8 @@
   "version": "0.2.5",
   "description": "定时读取猫眼榜单，解析 TMDB 后自动创建 Mediary 订阅",
   "author": "Mediary",
-  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.47/official/maoyan-rank",
-  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.47/official",
+  "homepage": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.48/official/maoyan-rank",
+  "source": "https://github.com/KyleYu2024/Mediary-Plugins/tree/plugins-v1.0.48/official",
   "license": "MIT",
   "api_version": 1,
   "min_mediary_version": "0.7.7",
@@ -16,24 +16,24 @@
   ],
   "artifacts": {
     "linux-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/maoyan-rank-v0.2.5-linux-amd64.tar.gz",
-      "sha256": "00f31333937a0b8eb81b55ccc571698c555b4d2a226067e060fe44e8b1545c29",
-      "size": 3242956
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.48/maoyan-rank-v0.2.5-linux-amd64.tar.gz",
+      "sha256": "428a024562a1807f2178bd4ec56b6574e834e59c8482b9ab2df8ac6eb11ae253",
+      "size": 3242904
     },
     "linux-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/maoyan-rank-v0.2.5-linux-arm64.tar.gz",
-      "sha256": "f39c5848e422dbb867d58a5bdcab1f015c873dd9e28ebad60dda57551ff688ec",
-      "size": 3243746
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.48/maoyan-rank-v0.2.5-linux-arm64.tar.gz",
+      "sha256": "4c78e91559599c5b51b0860032e03eea4de751b190399a112e477360d9f1a325",
+      "size": 3243748
     },
     "darwin-amd64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/maoyan-rank-v0.2.5-darwin-amd64.tar.gz",
-      "sha256": "758f7eff212cb5a39d9c34c966a97aa1659c5af154af1dac8d614f23a4c98ef2",
-      "size": 3044948
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.48/maoyan-rank-v0.2.5-darwin-amd64.tar.gz",
+      "sha256": "7ea0879d9e3367931073f5e3b8426642e493714001b440a1383475daceb3bc5b",
+      "size": 3044950
     },
     "darwin-arm64": {
-      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.47/maoyan-rank-v0.2.5-darwin-arm64.tar.gz",
-      "sha256": "ca0ab7159cda012d6016d1cc261d770405ebcbb9d9f369e08113bab8f4f00e79",
-      "size": 2920014
+      "url": "https://github.com/KyleYu2024/Mediary-Plugins/releases/download/plugins-v1.0.48/maoyan-rank-v0.2.5-darwin-arm64.tar.gz",
+      "sha256": "b1357da8bb1616c5b823c0bd0190a69bd673772b54cb239d54b14b3f3f030113",
+      "size": 2920015
     }
   }
 }
